@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MenuVista • AR Viewer</title>
+
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: system-ui, Arial, sans-serif; background:#0b0b10; color:#fff; }
+    model-viewer{
+      width:100vw; height:100vh;
+      background:
+        radial-gradient(1200px 700px at 50% 70%, rgba(255,122,47,.18), transparent 60%),
+        radial-gradient(900px 500px at 40% 40%, rgba(58,63,159,.25), transparent 55%),
+        #0b0b10;
+    }
+
+    .topbar{
+      position:absolute;top:14px;left:14px;right:14px;
+      display:flex;gap:10px;justify-content:space-between;
+      pointer-events:none;z-index:5;align-items:center;
+    }
+    .brandBtn{
+      pointer-events:auto;display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(10px);
+      cursor:pointer;
+    }
+    .logoImg{height:28px;width:auto;display:block}
+    .brandName{font-weight:900;font-size:13px}
+
+    .chip{pointer-events:auto;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(10px);font-weight:900;font-size:13px}
+    .toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(12px);font-size:13px;max-width:88vw;text-align:center;display:none;z-index:6}
+    .toast.show{display:block}
+
+    .panel{
+      position:absolute;left:14px;right:14px;bottom:14px;
+      background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(12px);border-radius:18px;padding:14px;
+      display:flex;gap:12px;align-items:flex-end;justify-content:space-between;z-index:5
+    }
+    .title{font-size:18px;font-weight:900;margin:0 0 6px}
+    .meta{margin:0;opacity:.9;font-size:13px;line-height:1.35}
+    .price{font-weight:900;color:#FF7A2F}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    button{border:0;border-radius:14px;padding:10px 12px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .primary{background:#FF7A2F;color:#111}
+    .ghost{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.14)}
+    .wa{background:#25D366;color:#111}
+    .stk{background:#4CAF50;color:#111}
+    button[disabled]{opacity:.45;cursor:not-allowed}
+    .hint{opacity:.8;font-size:12px;margin-top:6px}
+
+    /* Checkout modal */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:80}
+    .overlay.show{display:block}
+    .modal{
+      position:fixed;left:50%;top:50%;
+      transform:translate(-50%,-50%);
+      width:min(560px, 92vw);
+      background:rgba(10,10,16,.95);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:18px;
+      backdrop-filter: blur(12px);
+      z-index:90;
+      display:none;
+    }
+    .modal.show{display:block}
+    .modalHeader{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.12)}
+    .modalTitle{font-weight:900}
+    .modalBody{padding:14px}
+    .kv{display:flex;justify-content:space-between;gap:10px;margin:8px 0}
+    .box{
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px 10px;
+      background:rgba(0,0,0,.25);
+      margin-top:10px;
+    }
+    .small{opacity:.85;font-size:12px;line-height:1.35}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+    .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:560px){ .row2{grid-template-columns:1fr;} }
+
+    input{
+      width:100%;padding:10px 12px;border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);color:#fff;outline:none;
+      font-weight:800;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="brandBtn" onclick="location.href='index.html'">
+      <img class="logoImg" src="assets/logo.png" alt="MenuVista logo">
+      <div class="brandName">MenuVista</div>
+    </div>
+    <div id="supportChip" class="chip">Checking AR support…</div>
+  </div>
+
+  <model-viewer id="mv"
+    src=""
+    camera-controls
+    auto-rotate
+    rotation-per-second="20deg"
+    shadow-intensity="1"
+    environment-image="neutral"
+    exposure="1.0"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    ar-placement="floor">
+  </model-viewer>
+
+  <div id="toast" class="toast show">Loading 3D model…</div>
+
+  <div class="panel">
+    <div style="max-width:58ch">
+      <p class="title" id="dishName">Loading…</p>
+      <p class="meta"><span class="price" id="dishPrice">—</span> <span id="dishDesc"></span></p>
+      <p class="meta" id="statusText">Swipe left/right to change dishes. Tap “View in AR” to place on table.</p>
+      <div class="hint" id="viewsText"></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="btnPrev">◀</button>
+      <button class="ghost" id="btnNext">▶</button>
+      <button class="ghost" id="btnReset">Reset</button>
+      <button class="ghost" id="btnCheckout">Cart Checkout</button>
+      <button class="wa" id="btnWA">WhatsApp Order</button>
+      <button class="primary" id="btnAR">View in AR</button>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
+  <div class="overlay" id="ov"></div>
+  <div class="modal" id="modal">
+    <div class="modalHeader">
+      <div class="modalTitle">Checkout • MenuVista</div>
+      <div class="chip" id="closeModal" style="cursor:pointer">✕</div>
+    </div>
+    <div class="modalBody">
+      <div id="orderLines"></div>
+
+      <div class="box">
+        <div class="kv"><div class="small">Total</div><div class="price" id="payTotal">KSh 0</div></div>
+        <div class="kv"><div class="small">Reference</div><div class="code" id="payRef">MV-0000</div></div>
+      </div>
+
+      <!-- STK -->
+      <div class="box">
+        <div style="font-weight:900;margin-bottom:6px">Pay via STK Push (Online)</div>
+        <div class="small">If backend is offline, use manual M-Pesa below.</div>
+
+        <div class="row2" style="margin-top:10px">
+          <div>
+            <div class="small" style="margin-bottom:6px">Phone (07XXXXXXXX)</div>
+            <input id="stkPhone" placeholder="0745XXXXXX" inputmode="numeric" />
+          </div>
+          <div>
+            <div class="small" style="margin-bottom:6px">Backend</div>
+            <div class="code" id="stkBackend">https://menuvista-mpesa-backend.onrender.com</div>
+          </div>
+        </div>
+
+        <div class="ctaRow">
+          <button class="stk" id="btnSTK" style="flex:1">Pay via STK Push</button>
+          <button class="ghost" id="btnHealth" style="flex:1">Check Backend</button>
+        </div>
+
+        <div class="small" id="stkStatus" style="margin-top:10px;opacity:.85">Status: idle</div>
+      </div>
+
+      <!-- Manual -->
+      <div class="box">
+        <div style="font-weight:900;margin-bottom:6px">Pay via M-Pesa (Manual)</div>
+        <div class="small">
+          1) M-Pesa → <b>Lipa na M-Pesa</b><br/>
+          2) Choose <b>Buy Goods</b> (Till)<br/>
+          3) Enter Till, amount, and reference below<br/>
+          4) Tap <b>Send Confirmation</b> on WhatsApp
+        </div>
+
+        <div class="kv" style="margin-top:10px">
+          <div class="small">Method</div>
+          <div class="code" id="methodOut">TILL</div>
+        </div>
+        <div class="kv">
+          <div class="small">Till Number</div>
+          <div class="code" id="bizNo">8711138</div>
+        </div>
+        <div class="kv">
+          <div class="small">Account / Reference</div>
+          <div class="code" id="refOut">MV-0000</div>
+        </div>
+        <div class="kv">
+          <div class="small">Amount</div>
+          <div class="code" id="amtOut">KSh 0</div>
+        </div>
+
+        <button class="ghost" id="copyAll">Copy payment details</button>
+
+        <div class="ctaRow">
+          <button class="wa" id="sendConfirm" style="flex:1">Send Confirmation on WhatsApp</button>
+          <button class="primary" id="placeOrder" style="flex:1">Place Order (WhatsApp)</button>
+        </div>
+
+        <div class="small" style="margin-top:10px;opacity:.75">
+          If AR fails on some phones, you can still rotate/zoom the 3D model here.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========= CONFIG =========
+    const CART_KEY = "mv_cart_v1";
+    const DISHES_URL = "data/dishes.json";
+
+    // WhatsApp business number (no +)
+    const WHATSAPP_NUMBER = "254745482764";
+
+    // Manual M-Pesa details
+    const MPESA_METHOD = "TILL";
+    const MPESA_BIZ_NO = "8711138";
+
+    // STK backend (Render)
+    const STK_API_BASE = "https://menuvista-mpesa-backend.onrender.com";
+
+    let dishes = [];
+
+    // ========= ELEMENTS =========
+    const mv = document.getElementById('mv');
+    const toast = document.getElementById('toast');
+    const btnAR = document.getElementById('btnAR');
+    const btnReset = document.getElementById('btnReset');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnWA = document.getElementById('btnWA');
+    const btnCheckout = document.getElementById('btnCheckout');
+    const supportChip = document.getElementById('supportChip');
+    const dishName = document.getElementById('dishName');
+    const dishPrice = document.getElementById('dishPrice');
+    const dishDesc = document.getElementById('dishDesc');
+    const viewsText = document.getElementById('viewsText');
+
+    // modal
+    const ov = document.getElementById("ov");
+    const modal = document.getElementById("modal");
+    const closeModal = document.getElementById("closeModal");
+    const orderLines = document.getElementById("orderLines");
+    const payTotal = document.getElementById("payTotal");
+    const payRef = document.getElementById("payRef");
+    const methodOut = document.getElementById("methodOut");
+    const bizNo = document.getElementById("bizNo");
+    const refOut = document.getElementById("refOut");
+    const amtOut = document.getElementById("amtOut");
+    const copyAll = document.getElementById("copyAll");
+    const sendConfirm = document.getElementById("sendConfirm");
+    const placeOrder = document.getElementById("placeOrder");
+
+    // STK elements
+    const stkPhone = document.getElementById("stkPhone");
+    const btnSTK = document.getElementById("btnSTK");
+    const btnHealth = document.getElementById("btnHealth");
+    const stkStatus = document.getElementById("stkStatus");
+    const stkBackend = document.getElementById("stkBackend");
+    stkBackend.textContent = STK_API_BASE;
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // ========= HELPERS =========
+    const formatKsh = (n) => "KSh " + Number(n).toLocaleString("en-KE");
+    const viewsKey = (id) => `mv_views_${id}`;
+    const incViews = (id) => {
+      const v = parseInt(localStorage.getItem(viewsKey(id)) || "0", 10) + 1;
+      localStorage.setItem(viewsKey(id), String(v));
+      return v;
+    };
+
+    function setToast(msg, show=true){
+      toast.textContent = msg;
+      toast.classList.toggle('show', !!show);
+    }
+    function setSupportChip(msg){ supportChip.textContent = msg; }
+
+    function getDishIdFromURL(){
+      const p = new URLSearchParams(location.search);
+      return p.get("dish");
+    }
+
+    // ========= LOAD DISHES =========
+    async function loadDishes(){
+      const res = await fetch(DISHES_URL, { cache: "no-store" });
+      if(!res.ok) throw new Error(`Failed to load ${DISHES_URL} (${res.status})`);
+      const data = await res.json();
+      if(!Array.isArray(data)) throw new Error("dishes.json must be an array []");
+      dishes = data;
+    }
+
+    // ========= VIEWER / SWIPE =========
+    let currentIndex = 0;
+
+    function updateURL(){
+      const id = dishes[currentIndex].id;
+      const u = new URL(location.href);
+      u.searchParams.set("dish", id);
+      history.replaceState({}, "", u.toString());
+    }
+
+    function loadCurrentDish(){
+      const d = dishes[currentIndex];
+      updateURL();
+
+      dishName.textContent = d.name;
+      dishPrice.textContent = formatKsh(d.price);
+      dishDesc.textContent = "— " + d.desc;
+
+      const v = incViews(d.id);
+      viewsText.textContent = `${v} view${v===1?"":"s"} (this browser)`;
+
+      setToast("Loading 3D model…", true);
+      mv.src = d.model;
+
+      const msg = `Hello, I want to order: ${d.name} (${formatKsh(d.price)}).`;
+      btnWA.onclick = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+
+    function prevDish(){ currentIndex = (currentIndex - 1 + dishes.length) % dishes.length; loadCurrentDish(); }
+    function nextDish(){ currentIndex = (currentIndex + 1) % dishes.length; loadCurrentDish(); }
+
+    btnPrev.addEventListener("click", prevDish);
+    btnNext.addEventListener("click", nextDish);
+
+    btnReset.addEventListener('click', () => {
+      mv.cameraOrbit = "0deg 75deg 2.5m";
+      mv.fieldOfView = "30deg";
+    });
+
+    btnAR.addEventListener('click', async () => {
+      try { await mv.activateAR(); }
+      catch(e){
+        setToast("AR could not start on this device. Using 3D preview instead.", true);
+        console.error(e);
+      }
+    });
+
+    mv.addEventListener('load', () => setToast("", false));
+    mv.addEventListener('error', () => {
+      setToast("Model failed to load. Check filename/path (case-sensitive).", true);
+      btnAR.disabled = true;
+      setSupportChip("Model load error");
+    });
+
+    async function detectARSupport(){
+      let webxrAR = false;
+      if (navigator.xr && navigator.xr.isSessionSupported) {
+        try { webxrAR = await navigator.xr.isSessionSupported('immersive-ar'); } catch(_) {}
+      }
+      const mvAR = !!mv.canActivateAR;
+      if (webxrAR) { btnAR.disabled = false; setSupportChip("AR supported (WebXR)"); return; }
+      if (isIOS)   { btnAR.disabled = !mvAR; setSupportChip(btnAR.disabled ? "AR limited on iOS" : "AR supported (iOS)"); return; }
+      if (mvAR)    { btnAR.disabled = false; setSupportChip("AR available (Android)"); return; }
+      btnAR.disabled = true; setSupportChip("AR not supported");
+    }
+
+    // Swipe on model-viewer
+    let startX=0, startY=0, isDown=false;
+    const SWIPE_MIN=50, SWIPE_MAX_Y=80;
+
+    mv.addEventListener("touchstart", (e)=>{
+      if(!e.touches || e.touches.length!==1) return;
+      isDown=true; startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    }, {passive:true});
+
+    mv.addEventListener("touchend", (e)=>{
+      if(!isDown) return; isDown=false;
+      const t=e.changedTouches && e.changedTouches[0]; if(!t) return;
+      const dx=t.clientX-startX, dy=t.clientY-startY;
+      if(Math.abs(dy)>SWIPE_MAX_Y) return;
+      if(dx>SWIPE_MIN) prevDish();
+      else if(dx<-SWIPE_MIN) nextDish();
+    }, {passive:true});
+
+    // ========= CART CHECKOUT =========
+    function loadCart(){
+      try { return JSON.parse(localStorage.getItem(CART_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function cartCount(cart){ return Object.values(cart).reduce((a,b)=>a+b,0); }
+    function cartTotal(cart){
+      let total=0;
+      for(const [id, qty] of Object.entries(cart)){
+        const d = dishes.find(x=>x.id===id);
+        if(d) total += d.price * qty;
+      }
+      return total;
+    }
+    function makeRef(){
+      const n = Math.floor(1000 + Math.random()*9000);
+      return `MV-${n}`;
+    }
+    function openModal(){
+      ov.classList.add("show");
+      modal.classList.add("show");
+    }
+    function closeModalFn(){
+      ov.classList.remove("show");
+      modal.classList.remove("show");
+    }
+    ov.onclick = closeModalFn;
+    closeModal.onclick = closeModalFn;
+
+    function renderCheckout(cart, ref){
+      const total = cartTotal(cart);
+
+      methodOut.textContent = MPESA_METHOD;
+      bizNo.textContent = MPESA_BIZ_NO;
+      payTotal.textContent = formatKsh(total);
+      payRef.textContent = ref;
+      refOut.textContent = ref;
+      amtOut.textContent = formatKsh(total);
+
+      let lines = [];
+      for(const [id, qty] of Object.entries(cart)){
+        const d = dishes.find(x=>x.id===id);
+        if(!d) continue;
+        lines.push(`${qty} x ${d.name} = ${formatKsh(d.price * qty)}`);
+      }
+
+      orderLines.innerHTML = `
+        <div class="box">
+          <div style="font-weight:900;margin-bottom:6px">Order Summary</div>
+          <div class="small">${lines.join("<br/>")}</div>
+        </div>
+      `;
+
+      const paymentText =
+`MenuVista Order Payment
+Method: ${MPESA_METHOD}
+Business No: ${MPESA_BIZ_NO}
+Reference: ${ref}
+Amount: ${total}
+
+Order:
+${lines.join("\n")}
+Total: ${total}`;
+
+      copyAll.onclick = async () => {
+        try { await navigator.clipboard.writeText(paymentText); alert("Copied payment details."); }
+        catch { alert("Copy failed. Please copy manually."); }
+      };
+
+      const orderMsg =
+`Hello, I want to place an order:
+
+${lines.join("\n")}
+TOTAL: ${formatKsh(total)}
+
+Payment method: M-Pesa (${MPESA_METHOD})
+Reference: ${ref}`;
+
+      const confirmMsg =
+`Hello, I have paid via M-Pesa.
+
+Reference: ${ref}
+Amount: ${formatKsh(total)}
+
+Please confirm and process my order.`;
+
+      placeOrder.onclick = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(orderMsg)}`, "_blank");
+      sendConfirm.onclick = () => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(confirmMsg)}`, "_blank");
+    }
+
+    function startCheckoutFromURL(){
+      const p = new URLSearchParams(location.search);
+      const isCheckout = p.get("checkout") === "1";
+      if(!isCheckout) return;
+
+      let cart = {};
+      const encoded = p.get("cart");
+      if(encoded){
+        try { cart = JSON.parse(atob(decodeURIComponent(encoded))); } catch {}
+      } else {
+        cart = loadCart();
+      }
+
+      if(cartCount(cart) === 0){
+        alert("Cart is empty.");
+        return;
+      }
+
+      const ref = makeRef();
+      renderCheckout(cart, ref);
+      openModal();
+    }
+
+    btnCheckout.onclick = () => {
+      const cart = loadCart();
+      if(cartCount(cart) === 0){ alert("Cart is empty."); return; }
+      const ref = makeRef();
+      renderCheckout(cart, ref);
+      openModal();
+    };
+
+    // ========= STK PUSH =========
+    function normalizePhoneKE(input){
+      const s = String(input || "").trim();
+      if(/^07\d{8}$/.test(s)) return "254" + s.slice(1);
+      if(/^2547\d{8}$/.test(s)) return s;
+      if(/^\+2547\d{8}$/.test(s)) return s.slice(1);
+      return null;
+    }
+
+    async function checkBackend(){
+      stkStatus.textContent = "Status: checking backend…";
+      try{
+        const res = await fetch(`${STK_API_BASE}/health`, { cache:"no-store" });
+        const j = await res.json().catch(()=>null);
+        if(res.ok && j && j.ok){
+          stkStatus.textContent = `Status: backend OK (${j.env || "unknown"})`;
+          return true;
+        }
+        stkStatus.textContent = "Status: backend responded but not OK";
+        return false;
+      }catch(e){
+        stkStatus.textContent = "Status: backend not reachable. Deploy STK backend or use manual M-Pesa.";
+        return false;
+      }
+    }
+
+    btnHealth.onclick = checkBackend;
+
+    btnSTK.onclick = async () => {
+      const cart = loadCart();
+      if(cartCount(cart) === 0){
+        stkStatus.textContent = "Status: cart is empty.";
+        return;
+      }
+
+      const phone = normalizePhoneKE(stkPhone.value);
+      if(!phone){
+        stkStatus.textContent = "Status: Invalid phone. Use 07XXXXXXXX.";
+        return;
+      }
+
+      const ref = payRef.textContent || makeRef();
+      const total = cartTotal(cart);
+
+      stkStatus.textContent = "Status: sending STK request…";
+
+      try{
+        const res = await fetch(`${STK_API_BASE}/stkpush`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: phone,         // 2547XXXXXXXX
+            amount: total,
+            accountRef: ref,
+            desc: "MenuVista Order"
+          })
+        });
+
+        const j = await res.json().catch(()=>null);
+
+        if(res.ok && j && j.ok){
+          stkStatus.textContent = "Status: STK accepted. Check your phone to complete payment.";
+        }else{
+          stkStatus.textContent = "Status: STK failed — " + ((j && (j.error || j.details)) ? (j.error || j.details) : "unknown error");
+        }
+      }catch(e){
+        stkStatus.textContent = "Status: Backend not reachable. Deploy STK backend or use manual M-Pesa.";
+      }
+    };
+
+    // ========= INIT =========
+    (async () => {
+      try{
+        await loadDishes();
+
+        // set start index from URL dish=
+        const wanted = getDishIdFromURL();
+        const idx = wanted ? dishes.findIndex(d => d.id === wanted) : -1;
+        currentIndex = (idx >= 0) ? idx : 0;
+
+        loadCurrentDish();
+        setTimeout(detectARSupport, 500);
+
+        // If checkout passed from index.html, open modal and show summary
+        startCheckoutFromURL();
+      }catch(err){
+        console.error(err);
+        setToast("Failed to load data/dishes.json. Fix file path + JSON format.", true);
+        setSupportChip("Data load error");
+        btnAR.disabled = true;
+      }
+    })();
+  </script>
+</body>
+</html>
