@@ -47,6 +47,9 @@ export default function ARViewer() {
 
   const [dishes, setDishes] = React.useState<Dish[]>([]);
   const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [initializedFromUrl, setInitializedFromUrl] = React.useState(false);
+  const [currentModelSrc, setCurrentModelSrc] = React.useState("");
+  const [modelLoading, setModelLoading] = React.useState(true);
   const [toast, setToast] = React.useState("Loading 3D model...");
   const [supportChip, setSupportChip] = React.useState("Checking AR support...");
   const [arDisabled, setArDisabled] = React.useState(false);
@@ -56,6 +59,7 @@ export default function ARViewer() {
   const [checkoutRef, setCheckoutRef] = React.useState("");
   const [stkPhone, setStkPhone] = React.useState("");
   const [stkStatus, setStkStatus] = React.useState("Status: idle");
+  const [showMeta, setShowMeta] = React.useState(false);
 
   const isIOS = React.useMemo(() => {
     return (
@@ -98,10 +102,13 @@ export default function ARViewer() {
     const wanted = searchParams.get("dish");
     const idx = wanted ? dishes.findIndex((d) => d.id === wanted) : -1;
     setCurrentIndex(idx >= 0 ? idx : 0);
+    setInitializedFromUrl(true);
   }, [dishes, searchParams]);
 
   React.useEffect(() => {
-    if (!selectedDish) return;
+    if (!selectedDish || !initializedFromUrl) return;
+    setModelLoading(true);
+    setCurrentModelSrc(selectedDish.model);
     if (searchParams.get("dish") !== selectedDish.id) {
       const next = new URLSearchParams(window.location.search);
       next.set("dish", selectedDish.id);
@@ -114,25 +121,28 @@ export default function ARViewer() {
     setViewsText(`${v} view${v === 1 ? "" : "s"} (this browser)`);
 
     setToast("Loading 3D model...");
-    const mv = modelViewerRef.current;
-    if (mv) mv.src = selectedDish.model;
-  }, [selectedDish, setSearchParams, searchParams]);
+  }, [selectedDish, setSearchParams, searchParams, initializedFromUrl]);
 
   React.useEffect(() => {
     const mv = modelViewerRef.current;
     if (!mv) return;
 
     const onLoad = () => setToast("");
+    const onLoaded = () => {
+      setToast("");
+      setModelLoading(false);
+    };
     const onError = () => {
       setToast("Model failed to load. Check filename/path (case-sensitive).");
       setArDisabled(true);
       setSupportChip("Model load error");
+      setModelLoading(false);
     };
 
-    mv.addEventListener("load", onLoad);
+    mv.addEventListener("load", onLoaded);
     mv.addEventListener("error", onError);
     return () => {
-      mv.removeEventListener("load", onLoad);
+      mv.removeEventListener("load", onLoaded);
       mv.removeEventListener("error", onError);
     };
   }, [selectedDish]);
@@ -319,27 +329,27 @@ export default function ARViewer() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b10] text-white">
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-center justify-between gap-2 md:inset-x-4 md:top-4">
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex items-center justify-between gap-2 md:inset-x-5 md:top-5">
         <button
-          className="pointer-events-auto inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-black/50 px-3 text-sm font-bold text-white backdrop-blur-xl transition hover:bg-black/65"
+          className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-black/45 px-3 text-xs font-bold text-white backdrop-blur-xl transition hover:bg-black/60 sm:h-11 sm:text-sm"
           onClick={() => navigate("/")}
         >
-          <img src={LOGO_SRC} alt="MenuVista logo" className="h-6 w-6 rounded-md object-cover" />
-          <span className="hidden sm:inline">MenuVista</span>
+          <img src={LOGO_SRC} alt="MenuVista logo" className="h-5 w-5 rounded-md object-cover sm:h-6 sm:w-6" />
+          <span>MenuVista</span>
         </button>
-        <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/50 px-3 py-2 text-[11px] font-semibold text-white/90 backdrop-blur-xl sm:text-xs">
+        <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/45 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-xl sm:text-xs">
           {supportChip}
         </div>
       </div>
 
       <model-viewer
         ref={modelViewerRef}
-        className="h-full w-full pb-[34vh] md:pb-56"
+        className={`h-full w-full transition-opacity duration-300 ${modelLoading ? "opacity-0" : "opacity-100"}`}
         style={{
           background:
-            "radial-gradient(1200px 700px at 50% 70%, rgba(255,122,47,.18), transparent 60%), radial-gradient(900px 500px at 40% 40%, rgba(58,63,159,.25), transparent 55%), #0b0b10",
+            "radial-gradient(1200px 700px at 50% 70%, rgba(255,122,47,.16), transparent 62%), radial-gradient(900px 520px at 35% 35%, rgba(58,63,159,.22), transparent 58%), #0b0b10",
         }}
-        src=""
+        src={currentModelSrc}
         camera-controls=""
         auto-rotate=""
         rotation-per-second="20deg"
@@ -351,32 +361,35 @@ export default function ARViewer() {
         ar-placement="floor"
       />
 
+      {modelLoading && selectedDish ? (
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <img
+            src={selectedDish.thumb}
+            alt={selectedDish.name}
+            className="h-full w-full scale-105 object-cover blur-xl"
+          />
+          <div className="absolute inset-0 bg-black/45" />
+        </div>
+      ) : null}
+
       {toast ? (
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 max-w-[88vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/60 px-3 py-2 text-center text-xs text-white/90 backdrop-blur-xl sm:text-sm">
           {toast}
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 z-20 px-2 pb-2 md:px-4 md:pb-4">
-        <div className="mx-auto max-w-5xl max-h-[34vh] overflow-y-auto rounded-3xl border border-white/10 bg-black/55 p-3 backdrop-blur-xl md:max-h-none md:p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-base font-black text-orange-400 sm:text-lg">
-                {selectedDish ? selectedDish.name : "Loading..."}
-              </div>
-              <div className="truncate text-[11px] text-white/65 sm:text-xs">
-                {selectedDish ? selectedDish.desc : "Preparing model..."}
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-sm font-black text-emerald-300 sm:text-base">
-                {formatKsh(selectedPrice)}
-              </div>
-              <div className="truncate text-[10px] text-white/50 sm:text-xs">{viewsText}</div>
-            </div>
-          </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-40 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
 
-          <div className="mt-2.5 space-y-2">
+      <div className="absolute inset-x-0 bottom-0 z-30 px-2 pb-2 md:px-4 md:pb-4">
+        <div className="mx-auto mb-2 flex w-fit max-w-[94vw] items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-1.5 backdrop-blur-xl">
+          <div className="max-w-[42vw] truncate text-xs font-bold text-white sm:max-w-[340px] sm:text-sm">
+            {selectedDish ? selectedDish.name : "Loading..."}
+          </div>
+          <div className="text-xs font-black text-orange-400 sm:text-sm">{formatKsh(selectedPrice)}</div>
+        </div>
+
+        <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/10 bg-black/55 p-2.5 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 md:p-3">
+          <div className="max-h-[25vh] overflow-y-auto md:max-h-none">
             <div className="grid grid-cols-3 gap-2">
               <button
                 className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
@@ -407,13 +420,7 @@ export default function ARViewer() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
-                onClick={openCheckout}
-              >
-                Checkout
-              </button>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-sm font-bold text-black transition hover:bg-emerald-300"
                 onClick={() =>
@@ -426,10 +433,16 @@ export default function ARViewer() {
               >
                 WhatsApp
               </button>
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={openCheckout}
+              >
+                Checkout
+              </button>
             </div>
 
             <button
-              className="min-h-11 w-full rounded-2xl bg-orange-500 px-3 text-sm font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 min-h-11 w-full rounded-2xl bg-orange-500 px-3 text-sm font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
               onClick={async () => {
                 try {
                   await modelViewerRef.current?.activateAR();
@@ -441,6 +454,22 @@ export default function ARViewer() {
             >
               View in AR
             </button>
+
+            <div className="mt-2 flex items-center justify-between">
+              <button
+                className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold text-white/75 transition hover:bg-white/[0.1] sm:text-xs"
+                onClick={() => setShowMeta((prev) => !prev)}
+              >
+                {showMeta ? "Hide Details" : "Show Details"}
+              </button>
+              <div className="truncate text-[10px] text-white/45 sm:text-xs">{viewsText}</div>
+            </div>
+
+            {showMeta && (
+              <div className="mt-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-[11px] leading-4 text-white/70 sm:text-xs sm:leading-5">
+                {selectedDish ? selectedDish.desc : "Preparing model..."}
+              </div>
+            )}
           </div>
         </div>
       </div>
