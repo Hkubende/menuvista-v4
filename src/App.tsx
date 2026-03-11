@@ -1,5 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Search,
@@ -9,23 +10,23 @@ import {
   Plus,
   ScanLine,
 } from "lucide-react";
-
-type Dish = {
-  id: string;
-  cat: string;
-  name: string;
-  price: number;
-  desc: string;
-  model: string;
-  thumb: string;
-};
+import { loadMenuCatalog, type Dish } from "./lib/catalog";
 
 type Cart = Record<string, number>;
 
 const CART_KEY = "mv_cart_v1";
+const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
+}
+
+function loadOverrides(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(PRICE_OVERRIDES_KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
 
 function LogoMark() {
@@ -43,9 +44,11 @@ function LogoMark() {
 function MenuItemCard({
   dish,
   onAdd,
+  onOpen,
 }: {
   dish: Dish;
   onAdd: (dish: Dish) => void;
+  onOpen: (dishId: string) => void;
 }) {
   return (
     <motion.div
@@ -53,7 +56,8 @@ function MenuItemCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.25 }}
-      className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20"
+      onClick={() => onOpen(dish.id)}
+      className="group cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20"
     >
       <div className="relative h-52 overflow-hidden">
         <img
@@ -72,7 +76,10 @@ function MenuItemCard({
           </div>
 
           <button
-            onClick={() => onAdd(dish)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onAdd(dish);
+            }}
             className="rounded-2xl bg-white/90 px-4 py-2 text-sm font-bold text-black transition hover:bg-orange-500 hover:text-white"
           >
             Add
@@ -93,8 +100,9 @@ function MenuItemCard({
 
         <div className="flex items-center justify-between gap-3">
           <button
-            onClick={() => {
-              window.location.href = `/ar.html?dish=${encodeURIComponent(dish.id)}`;
+            onClick={(event) => {
+              event.stopPropagation();
+              window.location.href = `/ar?dish=${encodeURIComponent(dish.id)}`;
             }}
             className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white transition hover:bg-white/[0.08]"
           >
@@ -102,7 +110,10 @@ function MenuItemCard({
           </button>
 
           <button
-            onClick={() => onAdd(dish)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onAdd(dish);
+            }}
             className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-black transition hover:bg-orange-400"
           >
             Add to Cart
@@ -114,6 +125,7 @@ function MenuItemCard({
 }
 
 export default function App() {
+  const navigate = useNavigate();
   const [dishes, setDishes] = React.useState<Dish[]>([]);
   const [search, setSearch] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState("All");
@@ -121,17 +133,11 @@ export default function App() {
   const [cartOpen, setCartOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [overrides, setOverrides] = React.useState<Record<string, number>>({});
 
   React.useEffect(() => {
-    fetch("/data/dishes.json", { cache: "no-store" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load dishes.json (${res.status})`);
-        return res.json();
-      })
+    loadMenuCatalog()
       .then((data) => {
-        if (!Array.isArray(data)) {
-          throw new Error("dishes.json must be an array");
-        }
         setDishes(data);
         setLoading(false);
       })
@@ -157,13 +163,45 @@ export default function App() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }, [cart]);
 
+  React.useEffect(() => {
+    const refreshOverrides = () => setOverrides(loadOverrides());
+    refreshOverrides();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshOverrides();
+    };
+
+    window.addEventListener("focus", refreshOverrides);
+    window.addEventListener("pageshow", refreshOverrides);
+    window.addEventListener("storage", refreshOverrides);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", refreshOverrides);
+      window.removeEventListener("pageshow", refreshOverrides);
+      window.removeEventListener("storage", refreshOverrides);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  const getEffectivePrice = React.useCallback(
+    (dish: Dish) =>
+      overrides[dish.id] != null ? Number(overrides[dish.id]) : Number(dish.price),
+    [overrides]
+  );
+
+  const pricedDishes = React.useMemo(
+    () => dishes.map((dish) => ({ ...dish, price: getEffectivePrice(dish) })),
+    [dishes, getEffectivePrice]
+  );
+
   const categories = React.useMemo(
-    () => ["All", ...Array.from(new Set(dishes.map((d) => d.cat)))],
-    [dishes]
+    () => ["All", ...Array.from(new Set(pricedDishes.map((d) => d.cat)))],
+    [pricedDishes]
   );
 
   const filtered = React.useMemo(() => {
-    return dishes.filter((dish) => {
+    return pricedDishes.filter((dish) => {
       const matchesCategory =
         activeCategory === "All" || dish.cat === activeCategory;
 
@@ -176,12 +214,12 @@ export default function App() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, dishes, search]);
+  }, [activeCategory, pricedDishes, search]);
 
   const topDish = React.useMemo(() => {
-    if (!dishes.length) return null;
-    return dishes.reduce((a, b) => (a.price > b.price ? a : b));
-  }, [dishes]);
+    if (!pricedDishes.length) return null;
+    return pricedDishes.reduce((a, b) => (a.price > b.price ? a : b));
+  }, [pricedDishes]);
 
   const addToCart = (dish: Dish) => {
     setCart((prev) => ({
@@ -202,7 +240,7 @@ export default function App() {
 
   const cartItems = Object.entries(cart)
     .map(([id, qty]) => {
-      const dish = dishes.find((d) => d.id === id);
+      const dish = pricedDishes.find((d) => d.id === id);
       return dish ? { ...dish, qty } : null;
     })
     .filter(Boolean) as Array<Dish & { qty: number }>;
@@ -212,9 +250,8 @@ export default function App() {
 
   const checkoutCart = () => {
     if (!cartItems.length) return;
-
     const payload = encodeURIComponent(btoa(JSON.stringify(cart)));
-    window.location.href = `/ar.html?checkout=1&cart=${payload}`;
+    navigate(`/ar?checkout=1&cart=${payload}`);
   };
 
   return (
@@ -252,6 +289,15 @@ export default function App() {
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.05] py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-orange-400/50"
                 />
               </div>
+
+              <button
+                onClick={() => {
+                  navigate("/dashboard");
+                }}
+                className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08]"
+              >
+                Dashboard
+              </button>
 
               <button
                 onClick={() => setCartOpen(true)}
@@ -300,7 +346,7 @@ export default function App() {
             <div className="mt-4 flex flex-col gap-3">
               <button
                 onClick={() => {
-                  window.location.href = "/dashboard.html";
+                  navigate("/dashboard");
                 }}
                 className="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-bold text-black transition hover:bg-emerald-300"
               >
@@ -309,7 +355,7 @@ export default function App() {
 
               <button
                 onClick={() => {
-                  window.location.href = "/ar.html";
+                  navigate("/ar");
                 }}
                 className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08]"
               >
@@ -366,7 +412,12 @@ export default function App() {
         {!loading && !error && (
           <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {filtered.map((dish) => (
-              <MenuItemCard key={dish.id} dish={dish} onAdd={addToCart} />
+              <MenuItemCard
+                key={dish.id}
+                dish={dish}
+                onAdd={addToCart}
+                onOpen={(dishId) => navigate(`/menu/${encodeURIComponent(dishId)}`)}
+              />
             ))}
           </section>
         )}

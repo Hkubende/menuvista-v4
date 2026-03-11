@@ -260,7 +260,7 @@
 
     <div class="topbar">
       <div class="brand">
-        <img class="logoImg" src="assets/logo.png" alt="MenuVista logo">
+        <img class="logoImg" src="/logo.png" alt="MenuVista logo">
         <div class="brandText">
           <div class="logo">MenuVista Dashboard</div>
           <div class="sub">Local analytics and price control for this browser.</div>
@@ -269,7 +269,7 @@
 
       <div class="topActions">
         <a class="btn" href="index.html">← Menu</a>
-        <a class="btn" href="ar.html">Open AR</a>
+        <a class="btn" href="/ar">Open AR</a>
         <button class="btn" id="resetViewsBtn">Reset Views</button>
         <button class="btn primary" id="clearPricesBtn">Clear Price Overrides</button>
       </div>
@@ -416,7 +416,7 @@
             <div class="rowBtns">
               <button class="smallBtn" data-save="${d.id}">Save</button>
               <button class="smallBtn" data-clear="${d.id}">Clear</button>
-              <a class="smallBtn" href="ar.html?dish=${encodeURIComponent(d.id)}">Open AR</a>
+              <a class="smallBtn" href="/ar?dish=${encodeURIComponent(d.id)}">Open AR</a>
             </div>
           </td>
         `;

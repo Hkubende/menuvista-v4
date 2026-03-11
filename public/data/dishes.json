@@ -1,191 +1,191 @@
 [
-  {
-    "id": "avalon-lemon",
-    "cat": "Fruits",
-    "name": "Avalon Lemon",
-    "price": 200,
-    "desc": "Fresh lemon in 3D preview.",
-    "model": "/models/avalon-lemon.glb",
-    "thumb": "/thumbs/avalon-lemon.png"
-  },
-  {
-    "id": "bread",
-    "cat": "Bakery",
-    "name": "Bread",
-    "price": 200,
-    "desc": "Bread loaf in 3D preview.",
-    "model": "/models/bread.glb",
-    "thumb": "/thumbs/bread.png"
-  },
-  {
-    "id": "burger-drink",
-    "cat": "Mains",
-    "name": "Burger Drink Combo",
-    "price": 900,
-    "desc": "Burger and drink combo in 3D preview.",
-    "model": "/models/burger-drink.glb",
-    "thumb": "/thumbs/burger.png"
-  },
-  {
-    "id": "burger-fries",
-    "cat": "Mains",
-    "name": "Burger and Fries",
-    "price": 950,
-    "desc": "Burger with fries in 3D preview.",
-    "model": "/models/burger-fries.glb",
-    "thumb": "/thumbs/burger-fries.png"
-  },
-  {
-    "id": "chapati-meat",
-    "cat": "Mains",
-    "name": "Chapati Meat",
-    "price": 1100,
-    "desc": "Chapati with meat in 3D preview.",
-    "model": "/models/chapati-meat.glb",
-    "thumb": "/thumbs/burger.png"
-  },
-  {
-    "id": "cheeseburger",
-    "cat": "Mains",
-    "name": "Cheeseburger",
-    "price": 850,
-    "desc": "Cheeseburger in 3D preview.",
-    "model": "/models/cheeseburger.glb",
-    "thumb": "/thumbs/cheeseburger.png"
-  },
-  {
-    "id": "chicken",
-    "cat": "Mains",
-    "name": "Chicken",
-    "price": 900,
-    "desc": "Chicken dish in 3D preview.",
-    "model": "/models/chicken.glb",
-    "thumb": "/thumbs/chicken.png"
-  },
-  {
-    "id": "cookies",
-    "cat": "Dessert",
-    "name": "Cookies",
-    "price": 300,
-    "desc": "Cookies in 3D preview.",
-    "model": "/models/cookies.glb",
-    "thumb": "/thumbs/cookies.png"
-  },
-  {
-    "id": "croissant",
-    "cat": "Bakery",
-    "name": "Croissant",
-    "price": 280,
-    "desc": "Croissant in 3D preview.",
-    "model": "/models/croissant.glb",
-    "thumb": "/thumbs/croissant.png"
-  },
-  {
-    "id": "huel-bottle",
-    "cat": "Drinks",
-    "name": "Huel Bottle",
-    "price": 450,
-    "desc": "Bottle drink in 3D preview.",
-    "model": "/models/huel-bottle.glb",
-    "thumb": "/thumbs/huel-bottle.png"
-  },
-  {
-    "id": "lasagna",
-    "cat": "Mains",
-    "name": "Lasagna",
-    "price": 1200,
-    "desc": "Lasagna in 3D preview.",
-    "model": "/models/lasagna.glb",
-    "thumb": "/thumbs/lasagna.png"
-  },
-  {
-    "id": "litchi-juice",
-    "cat": "Drinks",
-    "name": "Litchi Juice",
-    "price": 350,
-    "desc": "Litchi juice in 3D preview.",
-    "model": "/models/litchi juice.glb",
-    "thumb": "/thumbs/litchi Juice.png"
-  },
-  {
-    "id": "mexican-avocado",
-    "cat": "Fruits",
-    "name": "Mexican Avocado",
-    "price": 250,
-    "desc": "Mexican avocado in 3D preview.",
-    "model": "/models/mexican-avocado.glb",
-    "thumb": "/thumbs/mexican-avocado.png"
-  },
-  {
-    "id": "orange",
-    "cat": "Fruits",
-    "name": "Orange",
-    "price": 200,
-    "desc": "Orange in 3D preview.",
-    "model": "/models/orange.glb",
-    "thumb": "/thumbs/orange.png"
-  },
-  {
-    "id": "passion-fruit",
-    "cat": "Fruits",
-    "name": "Passion Fruit",
-    "price": 180,
-    "desc": "Passion fruit in 3D preview.",
-    "model": "/models/passion-fruit.glb",
-    "thumb": "/thumbs/passion-fruit.png"
-  },
-  {
-    "id": "pasta-meatballs",
-    "cat": "Mains",
-    "name": "Pasta Meatballs",
-    "price": 1300,
-    "desc": "Pasta with meatballs in 3D preview.",
-    "model": "/models/pasta-meatballs.glb",
-    "thumb": "/thumbs/pasta-meatballs.png"
-  },
-  {
-    "id": "persian-lime",
-    "cat": "Fruits",
-    "name": "Persian Lime",
-    "price": 150,
-    "desc": "Persian lime in 3D preview.",
-    "model": "/models/persian-lime.glb",
-    "thumb": "/thumbs/persian-lime.png"
-  },
-  {
-    "id": "poly-burger",
-    "cat": "Mains",
-    "name": "Poly Burger",
-    "price": 850,
-    "desc": "Stylized burger in 3D preview.",
-    "model": "/models/poly-burger.glb",
-    "thumb": "/thumbs/burger.png"
-  },
-  {
-    "id": "rice-paneer",
-    "cat": "Mains",
-    "name": "Rice Paneer",
-    "price": 1200,
-    "desc": "Rice and paneer in 3D preview.",
-    "model": "/models/rice-paneer.glb",
-    "thumb": "/thumbs/rice-paneer.png"
-  },
-  {
-    "id": "roxie-rootbeer",
-    "cat": "Drinks",
-    "name": "Roxie Rootbeer",
-    "price": 300,
-    "desc": "Root beer in 3D preview.",
-    "model": "/models/roxie-rootbeer.glb",
-    "thumb": "/thumbs/roxie-rootbeer.png"
-  },
-  {
-    "id": "sushi",
-    "cat": "Mains",
-    "name": "Sushi",
-    "price": 1500,
-    "desc": "Sushi in 3D preview.",
-    "model": "/models/sushi.glb",
-    "thumb": "/thumbs/sushi.png"
-  }
+    {
+        "id":  "avalon-lemon",
+        "cat":  "Fruits",
+        "name":  "Avalon Lemon",
+        "price":  200,
+        "desc":  "Fresh lemon in 3D preview.",
+        "model":  "/models/avalon-lemon.glb",
+        "thumb":  "/thumbs/avalon-lemon.png"
+    },
+    {
+        "id":  "bread",
+        "cat":  "Bakery",
+        "name":  "Bread",
+        "price":  200,
+        "desc":  "Bread loaf in 3D preview.",
+        "model":  "/models/bread.glb",
+        "thumb":  "/thumbs/bread.png"
+    },
+    {
+        "id":  "burger-drink",
+        "cat":  "Mains",
+        "name":  "Burger Drink Combo",
+        "price":  900,
+        "desc":  "Burger and drink combo in 3D preview.",
+        "model":  "/models/burger-drink.glb",
+        "thumb":  "/thumbs/burger.png"
+    },
+    {
+        "id":  "burger-fries",
+        "cat":  "Mains",
+        "name":  "Burger and Fries",
+        "price":  950,
+        "desc":  "Burger with fries in 3D preview.",
+        "model":  "/models/burger-fries.glb",
+        "thumb":  "/thumbs/burger-fries.png"
+    },
+    {
+        "id":  "chapati-meat",
+        "cat":  "Mains",
+        "name":  "Chapati Meat",
+        "price":  1100,
+        "desc":  "Chapati with meat in 3D preview.",
+        "model":  "/models/chapati-meat.glb",
+        "thumb":  "/thumbs/burger.png"
+    },
+    {
+        "id":  "cheeseburger",
+        "cat":  "Mains",
+        "name":  "Cheeseburger",
+        "price":  850,
+        "desc":  "Cheeseburger in 3D preview.",
+        "model":  "/models/cheeseburger.glb",
+        "thumb":  "/thumbs/cheeseburger.png"
+    },
+    {
+        "id":  "chicken",
+        "cat":  "Mains",
+        "name":  "Chicken",
+        "price":  900,
+        "desc":  "Chicken dish in 3D preview.",
+        "model":  "/models/chicken.glb",
+        "thumb":  "/thumbs/chicken.png"
+    },
+    {
+        "id":  "cookies",
+        "cat":  "Dessert",
+        "name":  "Cookies",
+        "price":  300,
+        "desc":  "Cookies in 3D preview.",
+        "model":  "/models/cookies.glb",
+        "thumb":  "/thumbs/cookies.png"
+    },
+    {
+        "id":  "croissant",
+        "cat":  "Bakery",
+        "name":  "Croissant",
+        "price":  280,
+        "desc":  "Croissant in 3D preview.",
+        "model":  "/models/croissant.glb",
+        "thumb":  "/thumbs/croissant.png"
+    },
+    {
+        "id":  "huel-bottle",
+        "cat":  "Drinks",
+        "name":  "Huel Bottle",
+        "price":  450,
+        "desc":  "Bottle drink in 3D preview.",
+        "model":  "/models/huel-bottle.glb",
+        "thumb":  "/thumbs/huel-bottle.png"
+    },
+    {
+        "id":  "lasagna",
+        "cat":  "Mains",
+        "name":  "Lasagna",
+        "price":  1200,
+        "desc":  "Lasagna in 3D preview.",
+        "model":  "/models/lasagna.glb",
+        "thumb":  "/thumbs/lasagna.png"
+    },
+    {
+        "id":  "litchi-juice",
+        "cat":  "Drinks",
+        "name":  "Litchi Juice",
+        "price":  350,
+        "desc":  "Litchi juice in 3D preview.",
+        "model":  "/models/litchi-juice.glb",
+        "thumb":  "/thumbs/litchi-juice.png"
+    },
+    {
+        "id":  "mexican-avocado",
+        "cat":  "Fruits",
+        "name":  "Mexican Avocado",
+        "price":  250,
+        "desc":  "Mexican avocado in 3D preview.",
+        "model":  "/models/mexican-avocado.glb",
+        "thumb":  "/thumbs/mexican-avocado.png"
+    },
+    {
+        "id":  "orange",
+        "cat":  "Fruits",
+        "name":  "Orange",
+        "price":  200,
+        "desc":  "Orange in 3D preview.",
+        "model":  "/models/orange.glb",
+        "thumb":  "/thumbs/orange.png"
+    },
+    {
+        "id":  "passion-fruit",
+        "cat":  "Fruits",
+        "name":  "Passion Fruit",
+        "price":  180,
+        "desc":  "Passion fruit in 3D preview.",
+        "model":  "/models/passion-fruit.glb",
+        "thumb":  "/thumbs/passion-fruit.png"
+    },
+    {
+        "id":  "pasta-meatballs",
+        "cat":  "Mains",
+        "name":  "Pasta Meatballs",
+        "price":  1300,
+        "desc":  "Pasta with meatballs in 3D preview.",
+        "model":  "/models/pasta-meatballs.glb",
+        "thumb":  "/thumbs/pasta-meatballs.png"
+    },
+    {
+        "id":  "persian-lime",
+        "cat":  "Fruits",
+        "name":  "Persian Lime",
+        "price":  150,
+        "desc":  "Persian lime in 3D preview.",
+        "model":  "/models/persian-lime.glb",
+        "thumb":  "/thumbs/persian-lime.png"
+    },
+    {
+        "id":  "poly-burger",
+        "cat":  "Mains",
+        "name":  "Poly Burger",
+        "price":  850,
+        "desc":  "Stylized burger in 3D preview.",
+        "model":  "/models/poly-burger.glb",
+        "thumb":  "/thumbs/burger.png"
+    },
+    {
+        "id":  "rice-paneer",
+        "cat":  "Mains",
+        "name":  "Rice Paneer",
+        "price":  1200,
+        "desc":  "Rice and paneer in 3D preview.",
+        "model":  "/models/rice-paneer.glb",
+        "thumb":  "/thumbs/rice-paneer.png"
+    },
+    {
+        "id":  "roxie-rootbeer",
+        "cat":  "Drinks",
+        "name":  "Roxie Rootbeer",
+        "price":  300,
+        "desc":  "Root beer in 3D preview.",
+        "model":  "/models/roxie-rootbeer.glb",
+        "thumb":  "/thumbs/roxie-rootbeer.png"
+    },
+    {
+        "id":  "sushi",
+        "cat":  "Mains",
+        "name":  "Sushi",
+        "price":  1500,
+        "desc":  "Sushi in 3D preview.",
+        "model":  "/models/sushi.glb",
+        "thumb":  "/thumbs/sushi.png"
+    }
 ]
