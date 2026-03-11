@@ -45,10 +45,12 @@ function MenuItemCard({
   dish,
   onAdd,
   onOpen,
+  onArPreview,
 }: {
   dish: Dish;
   onAdd: (dish: Dish) => void;
   onOpen: (dishId: string) => void;
+  onArPreview: (dishId: string) => void;
 }) {
   return (
     <motion.div
@@ -102,7 +104,7 @@ function MenuItemCard({
           <button
             onClick={(event) => {
               event.stopPropagation();
-              window.location.href = `/ar?dish=${encodeURIComponent(dish.id)}`;
+              onArPreview(dish.id);
             }}
             className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white transition hover:bg-white/[0.08]"
           >
@@ -417,6 +419,7 @@ export default function App() {
                 dish={dish}
                 onAdd={addToCart}
                 onOpen={(dishId) => navigate(`/menu/${encodeURIComponent(dishId)}`)}
+                onArPreview={(dishId) => navigate(`/ar?dish=${encodeURIComponent(dishId)}`)}
               />
             ))}
           </section>

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ArrowLeft, Eye, PencilLine, PlusCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   loadCustomProducts,
   loadMenuCatalog,
@@ -52,6 +53,7 @@ function saveOverrides(data: Record<string, number>) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [dishes, setDishes] = React.useState<Dish[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -216,7 +218,7 @@ export default function Dashboard() {
 
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => (window.location.href = "/")}
+              onClick={() => navigate("/")}
               className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white hover:bg-white/[0.08]"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -431,9 +433,7 @@ export default function Dashboard() {
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() =>
-                              (window.location.href = `/ar?dish=${encodeURIComponent(dish.id)}`)
-                            }
+                            onClick={() => navigate(`/ar?dish=${encodeURIComponent(dish.id)}`)}
                             className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-black hover:bg-orange-400"
                           >
                             Open AR
