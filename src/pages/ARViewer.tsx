@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { loadMenuCatalog, type Dish } from "../lib/catalog";
-import "./ARViewer.css";
 
 type Cart = Record<string, number>;
 
@@ -137,42 +136,6 @@ export default function ARViewer() {
       mv.removeEventListener("error", onError);
     };
   }, [selectedDish]);
-
-  React.useEffect(() => {
-    const mv = modelViewerRef.current;
-    if (!mv) return;
-
-    let startX = 0;
-    let startY = 0;
-    let isDown = false;
-    const SWIPE_MIN = 50;
-    const SWIPE_MAX_Y = 80;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches || e.touches.length !== 1) return;
-      isDown = true;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!isDown) return;
-      isDown = false;
-      if (!e.changedTouches || !e.changedTouches[0]) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dy) > SWIPE_MAX_Y) return;
-      if (dx > SWIPE_MIN) setCurrentIndex((i) => (i - 1 + dishes.length) % dishes.length);
-      else if (dx < -SWIPE_MIN) setCurrentIndex((i) => (i + 1) % dishes.length);
-    };
-
-    mv.addEventListener("touchstart", onTouchStart, { passive: true });
-    mv.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      mv.removeEventListener("touchstart", onTouchStart);
-      mv.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [dishes.length]);
 
   React.useEffect(() => {
     const timer = window.setTimeout(async () => {
@@ -355,18 +318,27 @@ export default function ARViewer() {
     "Please confirm and process my order.";
 
   return (
-    <div className="ar-page">
-      <div className="ar-topbar">
-        <button className="ar-brand-btn" onClick={() => navigate("/")}>
-          <img className="ar-logo-img" src={LOGO_SRC} alt="MenuVista logo" />
-          <div className="ar-brand-name">MenuVista</div>
+    <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b10] text-white">
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-center justify-between gap-2 md:inset-x-4 md:top-4">
+        <button
+          className="pointer-events-auto inline-flex h-11 items-center gap-2 rounded-2xl border border-white/10 bg-black/50 px-3 text-sm font-bold text-white backdrop-blur-xl transition hover:bg-black/65"
+          onClick={() => navigate("/")}
+        >
+          <img src={LOGO_SRC} alt="MenuVista logo" className="h-6 w-6 rounded-md object-cover" />
+          <span className="hidden sm:inline">MenuVista</span>
         </button>
-        <div className="ar-chip">{supportChip}</div>
+        <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/50 px-3 py-2 text-[11px] font-semibold text-white/90 backdrop-blur-xl sm:text-xs">
+          {supportChip}
+        </div>
       </div>
 
       <model-viewer
         ref={modelViewerRef}
-        className="ar-viewer"
+        className="h-full w-full pb-[34vh] md:pb-56"
+        style={{
+          background:
+            "radial-gradient(1200px 700px at 50% 70%, rgba(255,122,47,.18), transparent 60%), radial-gradient(900px 500px at 40% 40%, rgba(58,63,159,.25), transparent 55%), #0b0b10",
+        }}
         src=""
         camera-controls=""
         auto-rotate=""
@@ -379,71 +351,97 @@ export default function ARViewer() {
         ar-placement="floor"
       />
 
-      {toast ? <div className="ar-toast">{toast}</div> : null}
-
-      <div className="ar-panel">
-        <div style={{ maxWidth: "58ch" }}>
-          <p className="ar-title">{selectedDish ? selectedDish.name : "Loading..."}</p>
-          <p className="ar-meta">
-            <span className="ar-price">{formatKsh(selectedPrice)}</span>{" "}
-            <span>{selectedDish ? `- ${selectedDish.desc}` : ""}</span>
-          </p>
-          <p className="ar-meta">
-            Swipe left/right to change dishes. Tap "View in AR" to place on table.
-          </p>
-          <div className="ar-hint">{viewsText}</div>
+      {toast ? (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 max-w-[88vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/60 px-3 py-2 text-center text-xs text-white/90 backdrop-blur-xl sm:text-sm">
+          {toast}
         </div>
-        <div className="ar-actions">
-          <button
-            className="ar-btn ghost"
-            onClick={() =>
-              setCurrentIndex((i) => (i - 1 + dishes.length) % (dishes.length || 1))
-            }
-            disabled={!dishes.length}
-          >
-            Prev
-          </button>
-          <button
-            className="ar-btn ghost"
-            onClick={() => setCurrentIndex((i) => (i + 1) % (dishes.length || 1))}
-            disabled={!dishes.length}
-          >
-            Next
-          </button>
-          <button
-            className="ar-btn ghost"
-            onClick={() => {
-              const mv = modelViewerRef.current;
-              if (!mv) return;
-              mv.cameraOrbit = "0deg 75deg 2.5m";
-              mv.fieldOfView = "30deg";
-            }}
-          >
-            Reset
-          </button>
-          <button className="ar-btn ghost" onClick={openCheckout}>
-            Cart Checkout
-          </button>
-          <button
-            className="ar-btn wa"
-            onClick={() => window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(selectedMsg)}`, "_blank")}
-            disabled={!selectedDish}
-          >
-            WhatsApp Order
-          </button>
-          <button
-            className="ar-btn primary"
-            onClick={async () => {
-              try {
-                await modelViewerRef.current?.activateAR();
-              } catch {
-                setToast("AR could not start on this device. Using 3D preview instead.");
-              }
-            }}
-            disabled={arDisabled || !selectedDish}
-          >
-            View in AR
-          </button>
+      ) : null}
+
+      <div className="absolute inset-x-0 bottom-0 z-20 px-2 pb-2 md:px-4 md:pb-4">
+        <div className="mx-auto max-w-5xl max-h-[34vh] overflow-y-auto rounded-3xl border border-white/10 bg-black/55 p-3 backdrop-blur-xl md:max-h-none md:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-base font-black text-orange-400 sm:text-lg">
+                {selectedDish ? selectedDish.name : "Loading..."}
+              </div>
+              <div className="truncate text-[11px] text-white/65 sm:text-xs">
+                {selectedDish ? selectedDish.desc : "Preparing model..."}
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-sm font-black text-emerald-300 sm:text-base">
+                {formatKsh(selectedPrice)}
+              </div>
+              <div className="truncate text-[10px] text-white/50 sm:text-xs">{viewsText}</div>
+            </div>
+          </div>
+
+          <div className="mt-2.5 space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={() =>
+                  setCurrentIndex((i) => (i - 1 + dishes.length) % (dishes.length || 1))
+                }
+                disabled={!dishes.length}
+              >
+                Prev
+              </button>
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={() => setCurrentIndex((i) => (i + 1) % (dishes.length || 1))}
+                disabled={!dishes.length}
+              >
+                Next
+              </button>
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={() => {
+                  const mv = modelViewerRef.current;
+                  if (!mv) return;
+                  mv.cameraOrbit = "0deg 75deg 2.5m";
+                  mv.fieldOfView = "30deg";
+                }}
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={openCheckout}
+              >
+                Checkout
+              </button>
+              <button
+                className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-sm font-bold text-black transition hover:bg-emerald-300"
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(selectedMsg)}`,
+                    "_blank"
+                  )
+                }
+                disabled={!selectedDish}
+              >
+                WhatsApp
+              </button>
+            </div>
+
+            <button
+              className="min-h-11 w-full rounded-2xl bg-orange-500 px-3 text-sm font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={async () => {
+                try {
+                  await modelViewerRef.current?.activateAR();
+                } catch {
+                  setToast("AR could not start on this device. Using 3D preview instead.");
+                }
+              }}
+              disabled={arDisabled || !selectedDish}
+            >
+              View in AR
+            </button>
+          </div>
         </div>
       </div>
 
