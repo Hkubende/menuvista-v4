@@ -10,6 +10,7 @@ import {
 import { deleteLocalAsset, isLocalAssetPath, saveLocalAsset } from "../lib/localAssets";
 
 const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
+const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 const EMPTY_PRODUCT = {
   id: "",
   cat: "",
@@ -206,7 +207,7 @@ export default function Dashboard() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-white/10 bg-black/35 p-5 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="MenuVista" className="h-12 w-12 rounded-2xl object-cover" />
+            <img src={LOGO_SRC} alt="MenuVista" className="h-12 w-12 rounded-2xl object-cover" />
             <div>
               <div className="text-2xl font-black">
                 <span className="text-orange-400">Menu</span>

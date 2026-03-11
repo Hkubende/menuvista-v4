@@ -11,6 +11,7 @@ const WHATSAPP_NUMBER = "254745482764";
 const MPESA_METHOD = "TILL";
 const MPESA_BIZ_NO = "8711138";
 const STK_API_BASE = "https://menuvista-mpesa-backend.onrender.com";
+const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(n: number) {
   return `KSh ${Number(n).toLocaleString("en-KE")}`;
@@ -357,7 +358,7 @@ export default function ARViewer() {
     <div className="ar-page">
       <div className="ar-topbar">
         <button className="ar-brand-btn" onClick={() => navigate("/")}>
-          <img className="ar-logo-img" src="/logo.png" alt="MenuVista logo" />
+          <img className="ar-logo-img" src={LOGO_SRC} alt="MenuVista logo" />
           <div className="ar-brand-name">MenuVista</div>
         </button>
         <div className="ar-chip">{supportChip}</div>

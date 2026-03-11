@@ -11,6 +11,14 @@ export type Dish = {
 };
 
 export const CUSTOM_PRODUCTS_KEY = "mv_custom_products_v1";
+const BASE_URL = import.meta.env.BASE_URL;
+
+function withBase(path: string) {
+  if (!path) return path;
+  if (/^(https?:|blob:|data:)/i.test(path)) return path;
+  const cleaned = path.replace(/^\/+/, "");
+  return `${BASE_URL}${cleaned}`;
+}
 
 function isDish(value: unknown): value is Dish {
   if (!value || typeof value !== "object") return false;
@@ -42,7 +50,7 @@ export function saveCustomProducts(products: Dish[]) {
 }
 
 export async function loadMenuCatalog(): Promise<Dish[]> {
-  const response = await fetch("/data/dishes.json", { cache: "no-store" });
+  const response = await fetch(withBase("data/dishes.json"), { cache: "no-store" });
   if (!response.ok) throw new Error(`Failed to load dishes.json (${response.status})`);
   const base = (await response.json()) as unknown;
   if (!Array.isArray(base)) throw new Error("dishes.json must be an array");
@@ -58,8 +66,8 @@ export async function loadMenuCatalog(): Promise<Dish[]> {
   return Promise.all(
     merged.map(async (dish) => ({
       ...dish,
-      model: await resolveLocalAssetPath(dish.model),
-      thumb: await resolveLocalAssetPath(dish.thumb),
+      model: withBase(await resolveLocalAssetPath(dish.model)),
+      thumb: withBase(await resolveLocalAssetPath(dish.thumb)),
     }))
   );
 }

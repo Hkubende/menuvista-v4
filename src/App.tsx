@@ -16,6 +16,7 @@ type Cart = Record<string, number>;
 
 const CART_KEY = "mv_cart_v1";
 const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
+const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
@@ -263,7 +264,7 @@ export default function App() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/logo.png"
+                src={LOGO_SRC}
                 alt="MenuVista"
                 className="h-12 w-12 rounded-2xl object-cover"
               />
