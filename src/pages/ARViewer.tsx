@@ -32,6 +32,7 @@ export default function ARViewer() {
   const [toast, setToast] = React.useState("Loading 3D model...");
   const [supportChip, setSupportChip] = React.useState("Checking AR support...");
   const [arDisabled, setArDisabled] = React.useState(false);
+  const [dishNotice, setDishNotice] = React.useState("");
   const [viewsText, setViewsText] = React.useState("");
   const [modalOpen, setModalOpen] = React.useState(false);
   const [checkoutCart, setCheckoutCart] = React.useState<Cart>({});
@@ -59,6 +60,12 @@ export default function ARViewer() {
   React.useEffect(() => {
     fetchDishes()
       .then((data) => {
+        if (!data.length) {
+          setToast("No dishes available. Add at least one dish in dashboard.");
+          setSupportChip("No dishes found");
+          setArDisabled(true);
+          return;
+        }
         setDishes(data);
       })
       .catch(() => {
@@ -77,14 +84,29 @@ export default function ARViewer() {
     if (!dishes.length) return;
     const wanted = searchParams.get("dish");
     const idx = wanted ? dishes.findIndex((d) => d.id === wanted) : -1;
+    if (wanted && idx < 0) {
+      setDishNotice(`Dish "${wanted}" not found. Showing ${dishes[0].name}.`);
+    } else {
+      setDishNotice("");
+    }
     setCurrentIndex(idx >= 0 ? idx : 0);
     setInitializedFromUrl(true);
   }, [dishes, searchParams]);
 
   React.useEffect(() => {
     if (!selectedDish || !initializedFromUrl) return;
+    const modelSrc = String(selectedDish.model || "").trim();
+    if (!modelSrc) {
+      setCurrentModelSrc("");
+      setModelLoading(false);
+      setToast(`No 3D model found for "${selectedDish.name}".`);
+      setSupportChip("No model file");
+      setArDisabled(true);
+      return;
+    }
+
     setModelLoading(true);
-    setCurrentModelSrc(selectedDish.model);
+    setCurrentModelSrc(modelSrc);
     if (searchParams.get("dish") !== selectedDish.id) {
       const next = new URLSearchParams(window.location.search);
       next.set("dish", selectedDish.id);
@@ -101,7 +123,6 @@ export default function ARViewer() {
     const mv = modelViewerRef.current;
     if (!mv) return;
 
-    const onLoad = () => setToast("");
     const onLoaded = () => {
       setToast("");
       setModelLoading(false);
@@ -339,6 +360,12 @@ export default function ARViewer() {
       {toast ? (
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-20 max-w-[88vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-black/60 px-3 py-2 text-center text-xs text-white/90 backdrop-blur-xl sm:text-sm">
           {toast}
+        </div>
+      ) : null}
+
+      {dishNotice ? (
+        <div className="pointer-events-none absolute left-1/2 top-20 z-20 max-w-[92vw] -translate-x-1/2 rounded-2xl border border-orange-400/25 bg-black/60 px-3 py-2 text-center text-[11px] font-semibold text-orange-300 backdrop-blur-xl sm:top-24 sm:text-xs">
+          {dishNotice}
         </div>
       ) : null}
 
