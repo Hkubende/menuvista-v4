@@ -22,6 +22,30 @@ VITE_STK_API_BASE="https://your-backend.example.com"
 
 If the backend is unavailable, AR checkout falls back to manual M-Pesa flow.
 
+## Backend service in this repo
+
+Start the backend locally:
+
+```bash
+npm run backend:start
+```
+
+For dev auto-reload:
+
+```bash
+npm run backend:dev
+```
+
+Backend endpoints:
+- `GET /health`
+- `POST /stkpush`
+- `POST /callback`
+- `GET /callbacks/latest` (debug)
+
+Config:
+- Copy `backend/.env.example` to your environment on Render/host and set values.
+- Point frontend to backend with `VITE_STK_API_BASE` (for example `http://localhost:8787`).
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
