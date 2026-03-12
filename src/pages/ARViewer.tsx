@@ -11,7 +11,6 @@ import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
 import { getEffectivePrice } from "../lib/price-overrides";
 import { incrementViews } from "../lib/views";
 
-const WHATSAPP_NUMBER = "254745482764";
 const MPESA_METHOD = "TILL";
 const MPESA_BIZ_NO = "8711138";
 const STK_API_BASE = (
@@ -346,16 +345,6 @@ export default function ARViewer() {
     }
   };
 
-  const selectedMsg = selectedDish
-    ? `Hello, I want to order 1 x ${selectedDish.name} @ ${formatKsh(selectedPrice)}.`
-    : "";
-  const orderMsg =
-    `Hello, I want to place an order:\n\n${checkoutLines.join("\n")}\nTOTAL: ${formatKsh(checkoutTotal)}\n\n` +
-    `Payment method: M-Pesa (${MPESA_METHOD})\nReference: ${checkoutRef}`;
-  const confirmMsg =
-    `Hello, I have paid via M-Pesa.\n\nReference: ${checkoutRef}\nAmount: ${formatKsh(checkoutTotal)}\n\n` +
-    "Please confirm and process my order.";
-
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b10] text-white">
       <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex items-center justify-between gap-2 md:inset-x-5 md:top-5">
@@ -464,15 +453,9 @@ export default function ARViewer() {
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button
                 className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-sm font-bold text-black transition hover:bg-emerald-300"
-                onClick={() =>
-                  window.open(
-                    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(selectedMsg)}`,
-                    "_blank"
-                  )
-                }
-                disabled={!selectedDish}
+                onClick={() => navigate("/orders")}
               >
-                WhatsApp
+                Orders
               </button>
               <button
                 className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
@@ -620,28 +603,12 @@ export default function ARViewer() {
                 Copy payment details
               </button>
 
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3">
                 <button
-                  className="rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-300"
-                  onClick={() =>
-                    window.open(
-                      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(confirmMsg)}`,
-                      "_blank"
-                    )
-                  }
+                  className="w-full rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-300"
+                  onClick={() => navigate("/checkout")}
                 >
-                  Send Confirmation on WhatsApp
-                </button>
-                <button
-                  className="rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-orange-400"
-                  onClick={() =>
-                    window.open(
-                      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(orderMsg)}`,
-                      "_blank"
-                    )
-                  }
-                >
-                  Place Order (WhatsApp)
+                  Continue to In-App Checkout
                 </button>
               </div>
             </div>

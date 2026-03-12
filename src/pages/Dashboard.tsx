@@ -14,6 +14,7 @@ import {
   saveOverrides,
   type PriceOverrides,
 } from "../lib/price-overrides";
+import { loadOrders, type Order } from "../lib/orders";
 import { getViews, resetViews } from "../lib/views";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 const EMPTY_PRODUCT = {
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const [customIds, setCustomIds] = React.useState<Set<string>>(new Set());
   const [viewsVersion, setViewsVersion] = React.useState(0);
   const [adminNotice, setAdminNotice] = React.useState("");
+  const [recentOrders, setRecentOrders] = React.useState<Order[]>([]);
   const [newProduct, setNewProduct] = React.useState(EMPTY_PRODUCT);
   const [formError, setFormError] = React.useState("");
   const [formSuccess, setFormSuccess] = React.useState("");
@@ -74,6 +76,7 @@ export default function Dashboard() {
 
   const refreshAdminState = React.useCallback(() => {
     setOverrides(loadOverrides());
+    setRecentOrders(loadOrders().slice(0, 5));
     setViewsVersion((prev) => prev + 1);
   }, []);
 
@@ -324,6 +327,38 @@ export default function Dashboard() {
             {adminNotice}
           </div>
         )}
+
+        <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+          <div className="mb-3 text-sm font-black uppercase tracking-wide text-white/70">
+            Recent Orders
+          </div>
+          {recentOrders.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm text-white/55">
+              No orders yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm"
+                >
+                  <div>
+                    <div className="font-mono text-xs text-white/80">{order.id}</div>
+                    <div className="text-[11px] text-white/50">
+                      {new Date(order.createdAt).toLocaleString("en-KE")}
+                    </div>
+                  </div>
+                  <div className="text-white/70">{order.items.length} item{order.items.length === 1 ? "" : "s"}</div>
+                  <div className="font-bold text-orange-300">{formatKsh(order.total)}</div>
+                  <div className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] text-white/80">
+                    {order.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {showNewProductForm && (
           <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5">

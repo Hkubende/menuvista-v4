@@ -14,7 +14,6 @@ import {
   addToCart as addDishToCart,
   cartCount,
   cartTotal as getCartTotal,
-  encodeCartPayload,
   loadCart,
   removeFromCart,
   saveCart,
@@ -246,8 +245,7 @@ export default function App() {
       setCartNotice("Your cart is empty. Add items before checkout.");
       return;
     }
-    const payload = encodeCartPayload(cart);
-    navigate(`/ar?checkout=1&cart=${payload}`);
+    navigate("/checkout");
   };
 
   return (

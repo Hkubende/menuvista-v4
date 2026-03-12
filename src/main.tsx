@@ -5,6 +5,8 @@ import App from "./App";
 import Dashboard from "./pages/Dashboard";
 import ARViewer from "./pages/ARViewer";
 import MenuItemPage from "./pages/MenuItemPage";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -15,6 +17,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Route path="/menu/:dishId" element={<MenuItemPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ar" element={<ARViewer />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/orders" element={<Orders />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
