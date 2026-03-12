@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "validate:dishes": "node scripts/validate-dishes.mjs",
     "validate:assets": "node scripts/validate-dishes-assets.mjs",
-    "prebuild": "npm run validate:assets",
+    "validate:data": "npm run validate:dishes && npm run validate:assets",
+    "prebuild": "npm run validate:data",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

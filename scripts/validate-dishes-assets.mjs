@@ -32,7 +32,12 @@ for (const dish of dishes) {
       continue;
     }
 
-    const normalized = raw.replace(/^\/+/, "").replaceAll("/", path.sep);
+    if (/^(https?:|blob:|data:)/i.test(raw)) {
+      fail(`[${id}] ${key} must reference a local file under public/, got external URL: ${raw}`);
+      continue;
+    }
+
+    const normalized = raw.trim().replace(/^\/+/, "").replaceAll("/", path.sep);
     const fullPath = path.join(repoRoot, "public", normalized);
     if (!existsSync(fullPath)) {
       fail(`[${id}] missing ${key} file: ${raw}`);
