@@ -10,24 +10,21 @@ import {
   Plus,
   ScanLine,
 } from "lucide-react";
-import { loadMenuCatalog, type Dish } from "./lib/catalog";
-
-type Cart = Record<string, number>;
-
-const CART_KEY = "mv_cart_v1";
-const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
+import {
+  addToCart as addDishToCart,
+  cartCount,
+  cartTotal as getCartTotal,
+  loadCart,
+  removeFromCart,
+  saveCart,
+  type Cart,
+} from "./lib/cart";
+import { fetchDishes, getCategories, getDishById, type Dish } from "./lib/dishes";
+import { getEffectivePrice, loadOverrides, type PriceOverrides } from "./lib/price-overrides";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
-}
-
-function loadOverrides(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(PRICE_OVERRIDES_KEY) || "{}");
-  } catch {
-    return {};
-  }
 }
 
 function LogoMark() {
@@ -136,10 +133,10 @@ export default function App() {
   const [cartOpen, setCartOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [overrides, setOverrides] = React.useState<Record<string, number>>({});
+  const [overrides, setOverrides] = React.useState<PriceOverrides>({});
 
   React.useEffect(() => {
-    loadMenuCatalog()
+    fetchDishes()
       .then((data) => {
         setDishes(data);
         setLoading(false);
@@ -152,18 +149,11 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    const saved = localStorage.getItem(CART_KEY);
-    if (!saved) return;
-
-    try {
-      setCart(JSON.parse(saved));
-    } catch (err) {
-      console.error("Failed to parse saved cart", err);
-    }
+    setCart(loadCart());
   }, []);
 
   React.useEffect(() => {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    saveCart(cart);
   }, [cart]);
 
   React.useEffect(() => {
@@ -187,21 +177,17 @@ export default function App() {
     };
   }, []);
 
-  const getEffectivePrice = React.useCallback(
-    (dish: Dish) =>
-      overrides[dish.id] != null ? Number(overrides[dish.id]) : Number(dish.price),
+  const getDishPrice = React.useCallback(
+    (dish: Dish) => getEffectivePrice(dish, overrides),
     [overrides]
   );
 
   const pricedDishes = React.useMemo(
-    () => dishes.map((dish) => ({ ...dish, price: getEffectivePrice(dish) })),
-    [dishes, getEffectivePrice]
+    () => dishes.map((dish) => ({ ...dish, price: getDishPrice(dish) })),
+    [dishes, getDishPrice]
   );
 
-  const categories = React.useMemo(
-    () => ["All", ...Array.from(new Set(pricedDishes.map((d) => d.cat)))],
-    [pricedDishes]
-  );
+  const categories = React.useMemo(() => getCategories(pricedDishes), [pricedDishes]);
 
   const filtered = React.useMemo(() => {
     return pricedDishes.filter((dish) => {
@@ -225,31 +211,29 @@ export default function App() {
   }, [pricedDishes]);
 
   const addToCart = (dish: Dish) => {
-    setCart((prev) => ({
-      ...prev,
-      [dish.id]: (prev[dish.id] || 0) + 1,
-    }));
+    setCart((prev) => addDishToCart(prev, dish.id));
     setCartOpen(true);
   };
 
   const changeQty = (dishId: string, nextQty: number) => {
     setCart((prev) => {
-      const copy = { ...prev };
-      if (nextQty <= 0) delete copy[dishId];
-      else copy[dishId] = nextQty;
-      return copy;
+      const currentQty = prev[dishId] || 0;
+      if (nextQty <= 0) return removeFromCart(prev, dishId, currentQty || 1);
+      if (nextQty > currentQty) return addDishToCart(prev, dishId, nextQty - currentQty);
+      if (nextQty < currentQty) return removeFromCart(prev, dishId, currentQty - nextQty);
+      return prev;
     });
   };
 
   const cartItems = Object.entries(cart)
     .map(([id, qty]) => {
-      const dish = pricedDishes.find((d) => d.id === id);
+      const dish = getDishById(pricedDishes, id);
       return dish ? { ...dish, qty } : null;
     })
     .filter(Boolean) as Array<Dish & { qty: number }>;
 
-  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const cartCountValue = cartCount(cart);
+  const cartTotal = getCartTotal(cart, pricedDishes);
 
   const checkoutCart = () => {
     if (!cartItems.length) return;
@@ -307,7 +291,7 @@ export default function App() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-bold text-black transition hover:bg-orange-400"
               >
                 <ShoppingCart className="h-4 w-4" />
-                Cart ({cartCount})
+                Cart ({cartCountValue})
               </button>
             </div>
           </div>
@@ -449,7 +433,7 @@ export default function App() {
                 <div>
                   <div className="text-lg font-black">Your Cart</div>
                   <div className="text-sm text-white/55">
-                    {cartCount} item{cartCount === 1 ? "" : "s"}
+                    {cartCountValue} item{cartCountValue === 1 ? "" : "s"}
                   </div>
                 </div>
 

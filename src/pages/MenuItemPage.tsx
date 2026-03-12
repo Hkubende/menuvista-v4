@@ -1,31 +1,12 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { loadMenuCatalog, type Dish } from "../lib/catalog";
-
-type Cart = Record<string, number>;
-
-const CART_KEY = "mv_cart_v1";
-const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
+import { addToCart as addDishToCart, loadCart, saveCart } from "../lib/cart";
+import { fetchDishes, type Dish } from "../lib/dishes";
+import { getEffectivePrice, loadOverrides, type PriceOverrides } from "../lib/price-overrides";
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
-}
-
-function loadOverrides(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(PRICE_OVERRIDES_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function loadCart(): Cart {
-  try {
-    return JSON.parse(localStorage.getItem(CART_KEY) || "{}");
-  } catch {
-    return {};
-  }
 }
 
 export default function MenuItemPage() {
@@ -36,11 +17,11 @@ export default function MenuItemPage() {
   const [dishes, setDishes] = React.useState<Dish[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [overrides, setOverrides] = React.useState<Record<string, number>>({});
+  const [overrides, setOverrides] = React.useState<PriceOverrides>({});
   const [added, setAdded] = React.useState(false);
 
   React.useEffect(() => {
-    loadMenuCatalog()
+    fetchDishes()
       .then((data) => {
         setDishes(data);
         setLoading(false);
@@ -79,14 +60,14 @@ export default function MenuItemPage() {
 
   const effectivePrice = React.useMemo(() => {
     if (!dish) return 0;
-    return overrides[dish.id] != null ? Number(overrides[dish.id]) : dish.price;
+    return getEffectivePrice(dish, overrides);
   }, [dish, overrides]);
 
-  const addToCart = () => {
+  const handleAddToCart = () => {
     if (!dish) return;
     const cart = loadCart();
-    cart[dish.id] = (cart[dish.id] || 0) + 1;
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    const next = addDishToCart(cart, dish.id);
+    saveCart(next);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1500);
   };
@@ -169,7 +150,7 @@ export default function MenuItemPage() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button
-                onClick={addToCart}
+                onClick={handleAddToCart}
                 className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-black hover:bg-emerald-300"
               >
                 Add to Cart

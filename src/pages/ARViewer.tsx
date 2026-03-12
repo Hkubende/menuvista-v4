@@ -1,11 +1,10 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { loadMenuCatalog, type Dish } from "../lib/catalog";
+import { cartCount, cartTotal as getCartTotal, loadCart, type Cart } from "../lib/cart";
+import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
+import { getEffectivePrice } from "../lib/price-overrides";
+import { incrementViews } from "../lib/views";
 
-type Cart = Record<string, number>;
-
-const CART_KEY = "mv_cart_v1";
-const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
 const WHATSAPP_NUMBER = "254745482764";
 const MPESA_METHOD = "TILL";
 const MPESA_BIZ_NO = "8711138";
@@ -14,26 +13,6 @@ const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(n: number) {
   return `KSh ${Number(n).toLocaleString("en-KE")}`;
-}
-
-function loadOverrides(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(PRICE_OVERRIDES_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function loadCart(): Cart {
-  try {
-    return JSON.parse(localStorage.getItem(CART_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function cartCount(cart: Cart) {
-  return Object.values(cart).reduce((a, b) => a + b, 0);
 }
 
 function makeRef() {
@@ -78,7 +57,7 @@ export default function ARViewer() {
   }, []);
 
   React.useEffect(() => {
-    loadMenuCatalog()
+    fetchDishes()
       .then((data) => {
         setDishes(data);
       })
@@ -89,13 +68,10 @@ export default function ARViewer() {
       });
   }, []);
 
-  const getEffectivePrice = React.useCallback((dish: Dish) => {
-    const overrides = loadOverrides();
-    return overrides[dish.id] != null ? Number(overrides[dish.id]) : Number(dish.price);
-  }, []);
+  const getDishPrice = React.useCallback((dish: Dish) => getEffectivePrice(dish), []);
 
   const selectedDish = dishes[currentIndex];
-  const selectedPrice = selectedDish ? getEffectivePrice(selectedDish) : 0;
+  const selectedPrice = selectedDish ? getDishPrice(selectedDish) : 0;
 
   React.useEffect(() => {
     if (!dishes.length) return;
@@ -115,9 +91,7 @@ export default function ARViewer() {
       setSearchParams(next, { replace: true });
     }
 
-    const key = `mv_views_${selectedDish.id}`;
-    const v = parseInt(localStorage.getItem(key) || "0", 10) + 1;
-    localStorage.setItem(key, String(v));
+    const v = incrementViews(selectedDish.id);
     setViewsText(`${v} view${v === 1 ? "" : "s"} (this browser)`);
 
     setToast("Loading 3D model...");
@@ -189,31 +163,21 @@ export default function ARViewer() {
     return () => window.clearTimeout(timer);
   }, [selectedDish, isIOS]);
 
-  const cartTotal = React.useCallback(
-    (cart: Cart) => {
-      let total = 0;
-      for (const [id, qty] of Object.entries(cart)) {
-        const dish = dishes.find((x) => x.id === id);
-        if (!dish) continue;
-        total += getEffectivePrice(dish) * qty;
-      }
-      return total;
-    },
-    [dishes, getEffectivePrice]
-  );
-
   const checkoutLines = React.useMemo(() => {
     const lines: string[] = [];
     for (const [id, qty] of Object.entries(checkoutCart)) {
-      const dish = dishes.find((x) => x.id === id);
+      const dish = getDishById(dishes, id);
       if (!dish) continue;
-      const unit = getEffectivePrice(dish);
+      const unit = getDishPrice(dish);
       lines.push(`${qty} x ${dish.name} @ ${formatKsh(unit)} = ${formatKsh(unit * qty)}`);
     }
     return lines;
-  }, [checkoutCart, dishes, getEffectivePrice]);
+  }, [checkoutCart, dishes, getDishPrice]);
 
-  const checkoutTotal = React.useMemo(() => cartTotal(checkoutCart), [cartTotal, checkoutCart]);
+  const checkoutTotal = React.useMemo(
+    () => getCartTotal(checkoutCart, dishes, getDishPrice),
+    [checkoutCart, dishes, getDishPrice]
+  );
 
   React.useEffect(() => {
     if (!dishes.length) return;

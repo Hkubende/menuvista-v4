@@ -3,13 +3,18 @@ import { ArrowLeft, Eye, PencilLine, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   loadCustomProducts,
-  loadMenuCatalog,
+  fetchDishes,
   saveCustomProducts,
   type Dish,
-} from "../lib/catalog";
+} from "../lib/dishes";
 import { deleteLocalAsset, isLocalAssetPath, saveLocalAsset } from "../lib/localAssets";
-
-const PRICE_OVERRIDES_KEY = "mv_price_overrides_v1";
+import {
+  getEffectivePrice,
+  loadOverrides,
+  saveOverrides,
+  type PriceOverrides,
+} from "../lib/price-overrides";
+import { getViews, resetViews } from "../lib/views";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 const EMPTY_PRODUCT = {
   id: "",
@@ -33,32 +38,12 @@ function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
 }
 
-function viewsKey(id: string) {
-  return `mv_views_${id}`;
-}
-
-function getViews(id: string) {
-  return parseInt(localStorage.getItem(viewsKey(id)) || "0", 10);
-}
-
-function loadOverrides(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(PRICE_OVERRIDES_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveOverrides(data: Record<string, number>) {
-  localStorage.setItem(PRICE_OVERRIDES_KEY, JSON.stringify(data));
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [dishes, setDishes] = React.useState<Dish[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [overrides, setOverrides] = React.useState<Record<string, number>>({});
+  const [overrides, setOverrides] = React.useState<PriceOverrides>({});
   const [customIds, setCustomIds] = React.useState<Set<string>>(new Set());
   const [newProduct, setNewProduct] = React.useState(EMPTY_PRODUCT);
   const [formError, setFormError] = React.useState("");
@@ -70,7 +55,7 @@ export default function Dashboard() {
 
   const refreshCatalog = React.useCallback(() => {
     setLoading(true);
-    return loadMenuCatalog()
+    return fetchDishes()
       .then((data) => {
         setDishes(data);
         const ids = new Set(loadCustomProducts().map((item) => item.id));
@@ -98,8 +83,7 @@ export default function Dashboard() {
     return [...dishes].sort((a, b) => getViews(b.id) - getViews(a.id))[0];
   }, [dishes]);
 
-  const effectivePrice = (dish: Dish) =>
-    overrides[dish.id] != null ? overrides[dish.id] : dish.price;
+  const effectivePrice = (dish: Dish) => getEffectivePrice(dish, overrides);
 
   const updatePrice = (id: string, value: string) => {
     const next = { ...overrides };
@@ -113,9 +97,9 @@ export default function Dashboard() {
     alert("Price overrides saved.");
   };
 
-  const resetViews = () => {
-    dishes.forEach((dish) => localStorage.removeItem(viewsKey(dish.id)));
-    window.location.reload();
+  const handleResetViews = () => {
+    resetViews(dishes.map((dish) => dish.id));
+    void refreshCatalog();
   };
 
   const handleNewProductChange =
@@ -234,7 +218,7 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={resetViews}
+              onClick={handleResetViews}
               className="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-bold text-black hover:bg-emerald-300"
             >
               Reset Views

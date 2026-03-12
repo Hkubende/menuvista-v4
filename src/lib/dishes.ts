@@ -11,6 +11,7 @@ export type Dish = {
 };
 
 export const CUSTOM_PRODUCTS_KEY = "mv_custom_products_v1";
+
 const BASE_URL = import.meta.env.BASE_URL;
 
 function withBase(path: string) {
@@ -49,7 +50,7 @@ export function saveCustomProducts(products: Dish[]) {
   localStorage.setItem(CUSTOM_PRODUCTS_KEY, JSON.stringify(products));
 }
 
-export async function loadMenuCatalog(): Promise<Dish[]> {
+export async function fetchDishes(): Promise<Dish[]> {
   const response = await fetch(withBase("data/dishes.json"), { cache: "no-store" });
   if (!response.ok) throw new Error(`Failed to load dishes.json (${response.status})`);
   const base = (await response.json()) as unknown;
@@ -70,4 +71,12 @@ export async function loadMenuCatalog(): Promise<Dish[]> {
       thumb: withBase(await resolveLocalAssetPath(dish.thumb)),
     }))
   );
+}
+
+export function getCategories(dishes: Dish[]) {
+  return ["All", ...Array.from(new Set(dishes.map((dish) => dish.cat)))];
+}
+
+export function getDishById(dishes: Dish[], id: string) {
+  return dishes.find((dish) => dish.id === id);
 }
