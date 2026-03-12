@@ -24,6 +24,8 @@ if (!Array.isArray(dishes)) {
 }
 
 const seenIds = new Set();
+const kebabIdRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const kebabFileRe = /^[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+$/;
 
 for (const [index, dish] of dishes.entries()) {
   const row = `index ${index}`;
@@ -41,6 +43,21 @@ for (const [index, dish] of dishes.entries()) {
   if (!Number.isFinite(price) || price <= 0) fail(`[${id || row}] price must be a positive number`);
   if (!model) fail(`[${id || row}] missing required field: model`);
   if (!thumb) fail(`[${id || row}] missing required field: thumb`);
+  if (id && !kebabIdRe.test(id)) {
+    fail(`[${id}] id must be kebab-case (e.g. pasta-meatballs)`);
+  }
+  if (model) {
+    const modelFile = model.replace(/^\/+/, "").split("/").pop() || "";
+    if (!kebabFileRe.test(modelFile)) {
+      fail(`[${id || row}] model filename must be kebab-case, got: ${model}`);
+    }
+  }
+  if (thumb) {
+    const thumbFile = thumb.replace(/^\/+/, "").split("/").pop() || "";
+    if (!kebabFileRe.test(thumbFile)) {
+      fail(`[${id || row}] thumb filename must be kebab-case, got: ${thumb}`);
+    }
+  }
 
   if (id) {
     if (seenIds.has(id)) fail(`[${id}] duplicate id`);

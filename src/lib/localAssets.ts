@@ -5,6 +5,14 @@ const LOCAL_ASSET_PREFIX = "localasset:";
 
 const objectUrlCache = new Map<string, string>();
 
+function slugify(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -19,17 +27,20 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-function makeAssetKey(prefix: "thumb" | "model") {
-  const random = Math.random().toString(36).slice(2, 10);
-  return `${prefix}-${Date.now()}-${random}`;
+function makeAssetKey(prefix: "thumb" | "model", file: File, preferredName?: string) {
+  const base = slugify(preferredName || file.name.replace(/\.[^.]+$/, "")) || prefix;
+  const ext = (file.name.match(/\.([a-z0-9]+)$/i)?.[1] || (prefix === "model" ? "glb" : "bin")).toLowerCase();
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${base}-${Date.now()}-${random}.${ext}`;
 }
 
 export async function saveLocalAsset(
   file: File,
-  prefix: "thumb" | "model"
+  prefix: "thumb" | "model",
+  preferredName?: string
 ): Promise<string> {
   const db = await openDb();
-  const key = makeAssetKey(prefix);
+  const key = makeAssetKey(prefix, file, preferredName);
 
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");

@@ -165,18 +165,27 @@ export default function Dashboard() {
   const addNewProduct = async () => {
     setFormError("");
     setFormSuccess("");
+    const canonicalId = slugify(newProduct.id || newProduct.name);
+    if (!canonicalId) {
+      setFormError("Product name or ID is required.");
+      return;
+    }
     let resolvedThumb = newProduct.thumb.trim();
     let resolvedModel = newProduct.model.trim();
     try {
-      resolvedThumb = thumbFile ? await saveLocalAsset(thumbFile, "thumb") : newProduct.thumb.trim();
-      resolvedModel = modelFile ? await saveLocalAsset(modelFile, "model") : newProduct.model.trim();
+      resolvedThumb = thumbFile
+        ? await saveLocalAsset(thumbFile, "thumb", canonicalId)
+        : newProduct.thumb.trim();
+      resolvedModel = modelFile
+        ? await saveLocalAsset(modelFile, "model", canonicalId)
+        : newProduct.model.trim();
     } catch {
       setFormError("Failed to save uploaded files. Try again.");
       return;
     }
 
     const nextProduct: Dish = {
-      id: slugify(newProduct.id || newProduct.name),
+      id: canonicalId,
       cat: newProduct.cat.trim(),
       name: newProduct.name.trim(),
       price: Number(newProduct.price),
