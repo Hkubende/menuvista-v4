@@ -356,16 +356,16 @@ export default function ARViewer() {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#0b0b10] text-white">
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex items-center justify-between gap-2 md:inset-x-5 md:top-5">
+    <div className="relative isolate h-screen w-screen overflow-hidden bg-[#0b0b10] text-white">
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-30 flex items-center justify-between gap-2 md:inset-x-5 md:top-5">
         <button
-          className="pointer-events-auto inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-black/45 px-3 text-xs font-bold text-white backdrop-blur-xl transition hover:bg-black/60 sm:h-11 sm:text-sm"
+          className="pointer-events-auto inline-flex h-9 items-center gap-2 rounded-2xl border border-white/10 bg-black/45 px-3 text-xs font-bold text-white backdrop-blur-xl transition hover:bg-black/60 sm:h-10 sm:text-sm"
           onClick={() => navigate("/")}
         >
           <img src={LOGO_SRC} alt="MenuVista logo" className="h-5 w-5 rounded-md object-cover sm:h-6 sm:w-6" />
           <span>MenuVista</span>
         </button>
-        <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/45 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-xl sm:text-xs">
+        <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/45 px-3 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-xl sm:text-xs">
           {supportChip}
         </div>
       </div>
@@ -412,27 +412,27 @@ export default function ARViewer() {
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-40 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-28 bg-gradient-to-t from-black/70 via-black/30 to-transparent md:h-40" />
 
-      <div className="absolute inset-x-0 bottom-0 z-30 px-2 pb-2 md:px-4 md:pb-4">
-        <div className="mx-auto mb-2 flex w-fit max-w-[94vw] items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-1.5 backdrop-blur-xl">
-          <div className="max-w-[42vw] truncate text-xs font-bold text-white sm:max-w-[340px] sm:text-sm">
+      <div className="absolute inset-x-0 bottom-0 z-30 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:px-4 md:pb-4">
+        <div className="mx-auto mb-1.5 flex w-fit max-w-[94vw] items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1 backdrop-blur-xl">
+          <div className="max-w-[48vw] truncate text-[11px] font-bold text-white sm:max-w-[340px] sm:text-sm">
             {selectedDish ? selectedDish.name : "Loading..."}
           </div>
-          <div className="text-xs font-black text-orange-400 sm:text-sm">{formatKsh(selectedPrice)}</div>
+          <div className="text-[11px] font-black text-orange-400 sm:text-sm">{formatKsh(selectedPrice)}</div>
         </div>
 
         {panelNotice ? (
-          <div className="mx-auto mb-2 w-full max-w-xl rounded-2xl border border-orange-400/25 bg-black/65 px-3 py-2 text-center text-xs text-orange-200 backdrop-blur-xl">
+          <div className="mx-auto mb-1.5 w-full max-w-xl rounded-2xl border border-orange-400/25 bg-black/65 px-3 py-1.5 text-center text-[11px] text-orange-200 backdrop-blur-xl">
             {panelNotice}
           </div>
         ) : null}
 
-        <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/10 bg-black/55 p-2.5 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 md:p-3">
-          <div className="max-h-[25vh] overflow-y-auto md:max-h-none">
+        <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/10 bg-black/55 p-2 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 md:p-3">
+          <div className="max-h-[22vh] overflow-y-auto md:max-h-none">
             <div className="grid grid-cols-3 gap-2">
               <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-xs font-bold text-white transition hover:bg-white/[0.1] sm:text-sm"
                 onClick={() =>
                   setCurrentIndex((i) => (i - 1 + dishes.length) % (dishes.length || 1))
                 }
@@ -441,14 +441,14 @@ export default function ARViewer() {
                 Prev
               </button>
               <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-xs font-bold text-white transition hover:bg-white/[0.1] sm:text-sm"
                 onClick={() => setCurrentIndex((i) => (i + 1) % (dishes.length || 1))}
                 disabled={!dishes.length}
               >
                 Next
               </button>
               <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-xs font-bold text-white transition hover:bg-white/[0.1] sm:text-sm"
                 onClick={() => {
                   const mv = modelViewerRef.current;
                   if (!mv) return;
@@ -462,7 +462,7 @@ export default function ARViewer() {
 
             <div className="mt-2 grid grid-cols-3 gap-2">
               <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-xs font-bold text-white transition hover:bg-white/[0.1] sm:text-sm"
                 onClick={addCurrentDishToCart}
                 disabled={!selectedDish}
                 title="Add current dish to cart"
@@ -473,13 +473,13 @@ export default function ARViewer() {
                 </span>
               </button>
               <button
-                className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-sm font-bold text-black transition hover:bg-emerald-300"
+                className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-xs font-bold text-black transition hover:bg-emerald-300 sm:text-sm"
                 onClick={() => navigate("/orders")}
               >
                 Orders
               </button>
               <button
-                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-xs font-bold text-white transition hover:bg-white/[0.1] sm:text-sm"
                 onClick={openCheckout}
               >
                 Checkout
@@ -500,7 +500,7 @@ export default function ARViewer() {
               View in AR
             </button>
 
-            <div className="mt-2 flex items-center justify-between">
+            <div className="mt-1.5 flex items-center justify-between">
               <button
                 className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[10px] font-semibold text-white/75 transition hover:bg-white/[0.1] sm:text-xs"
                 onClick={() => setShowMeta((prev) => !prev)}
