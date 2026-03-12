@@ -2,6 +2,12 @@ import type { Cart } from "./cart";
 import type { Dish } from "./dishes";
 
 export type OrderStatus = "pending" | "confirmed" | "preparing" | "completed";
+export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "completed",
+];
 
 export type OrderPaymentMethod = "manual_mpesa" | "stk_push_placeholder";
 
@@ -171,4 +177,13 @@ export function createAndStoreOrderFromCart(
 
 export function getRecentOrders(limit = 5) {
   return loadOrders().slice(0, Math.max(0, Math.floor(limit)));
+}
+
+export function updateOrderStatus(orderId: string, status: OrderStatus) {
+  const orders = loadOrders();
+  const next = orders.map((order) =>
+    order.id === orderId ? { ...order, status } : order
+  );
+  saveOrders(next);
+  return next;
 }

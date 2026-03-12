@@ -14,7 +14,13 @@ import {
   saveOverrides,
   type PriceOverrides,
 } from "../lib/price-overrides";
-import { getRecentOrders, type Order } from "../lib/orders";
+import {
+  getRecentOrders,
+  ORDER_STATUS_OPTIONS,
+  updateOrderStatus,
+  type Order,
+  type OrderStatus,
+} from "../lib/orders";
 import { getViews, resetViews } from "../lib/views";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 const EMPTY_PRODUCT = {
@@ -252,6 +258,12 @@ export default function Dashboard() {
     }
   };
 
+  const setOrderStatus = (orderId: string, status: OrderStatus) => {
+    updateOrderStatus(orderId, status);
+    setRecentOrders(getRecentOrders(5));
+    setAdminNotice(`Order ${orderId} marked as ${status}.`);
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0b10] text-white">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -341,18 +353,39 @@ export default function Dashboard() {
               {recentOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm"
+                  className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm"
                 >
-                  <div>
-                    <div className="font-mono text-xs text-white/80">{order.id}</div>
-                    <div className="text-[11px] text-white/50">
-                      {new Date(order.createdAt).toLocaleString("en-KE")}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-xs text-white/80">{order.id}</div>
+                      <div className="text-[11px] text-white/50">
+                        {new Date(order.createdAt).toLocaleString("en-KE")}
+                      </div>
+                    </div>
+                    <div className="text-white/70">{order.items.length} item{order.items.length === 1 ? "" : "s"}</div>
+                    <div className="font-bold text-orange-300">{formatKsh(order.total)}</div>
+                    <div className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] text-white/80">
+                      {order.status}
                     </div>
                   </div>
-                  <div className="text-white/70">{order.items.length} item{order.items.length === 1 ? "" : "s"}</div>
-                  <div className="font-bold text-orange-300">{formatKsh(order.total)}</div>
-                  <div className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[11px] text-white/80">
-                    {order.status}
+
+                  <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
+                    {ORDER_STATUS_OPTIONS.map((status) => {
+                      const active = order.status === status;
+                      return (
+                        <button
+                          key={`${order.id}-${status}`}
+                          onClick={() => setOrderStatus(order.id, status)}
+                          className={`rounded-xl border px-2 py-1 text-[11px] font-semibold transition ${
+                            active
+                              ? "border-emerald-400/35 bg-emerald-500/20 text-emerald-200"
+                              : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.08]"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
