@@ -1,3 +1,27 @@
+# MenuVista v4
+
+## M-Pesa backend quick check
+
+Run a direct health check against the STK backend:
+
+```bash
+npm run check:mpesa
+```
+
+Use a custom backend URL:
+
+```bash
+STK_API_BASE="https://your-backend.example.com" npm run check:mpesa
+```
+
+Frontend runtime override:
+
+```bash
+VITE_STK_API_BASE="https://your-backend.example.com"
+```
+
+If the backend is unavailable, AR checkout falls back to manual M-Pesa flow.
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

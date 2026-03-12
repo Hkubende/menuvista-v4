@@ -14,7 +14,10 @@ import { incrementViews } from "../lib/views";
 const WHATSAPP_NUMBER = "254745482764";
 const MPESA_METHOD = "TILL";
 const MPESA_BIZ_NO = "8711138";
-const STK_API_BASE = "https://menuvista-mpesa-backend.onrender.com";
+const STK_API_BASE = (
+  import.meta.env.VITE_STK_API_BASE || "https://menuvista-mpesa-backend.onrender.com"
+).replace(/\/+$/, "");
+const BACKEND_TIMEOUT_MS = 15000;
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(n: number) {
@@ -23,6 +26,16 @@ function formatKsh(n: number) {
 
 function makeRef() {
   return `MV-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = BACKEND_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export default function ARViewer() {
@@ -260,17 +273,21 @@ export default function ARViewer() {
   const checkBackend = async () => {
     setStkStatus("Status: checking backend...");
     try {
-      const res = await fetch(`${STK_API_BASE}/health`, { cache: "no-store" });
+      const res = await fetchWithTimeout(`${STK_API_BASE}/health`, { cache: "no-store" });
       const j = await res.json().catch(() => null);
       if (res.ok && j && j.ok) {
         setStkStatus(`Status: backend OK (${j.env || "unknown"})`);
         setPanelNotice("");
       } else {
-        setStkStatus("Status: backend responded but not OK");
+        setStkStatus(`Status: backend responded but not OK (${res.status})`);
         setPanelNotice("Payment backend is not healthy right now. Use manual M-Pesa checkout.");
       }
-    } catch {
-      setStkStatus("Status: backend not reachable. Deploy STK backend or use manual M-Pesa.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStkStatus("Status: backend timed out.");
+      } else {
+        setStkStatus("Status: backend not reachable. Deploy STK backend or use manual M-Pesa.");
+      }
       setPanelNotice("Payment backend is unreachable. Use manual M-Pesa checkout.");
     }
   };
@@ -288,7 +305,7 @@ export default function ARViewer() {
     const total = checkoutTotal;
     setStkStatus("Status: sending STK request...");
     try {
-      const res = await fetch(`${STK_API_BASE}/stkpush`, {
+      const res = await fetchWithTimeout(`${STK_API_BASE}/stkpush`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -303,12 +320,16 @@ export default function ARViewer() {
         setStkStatus("Status: STK accepted. Check your phone to complete payment.");
       } else {
         setStkStatus(
-          `Status: STK failed - ${j && (j.error || j.details) ? j.error || j.details : "unknown error"}`
+          `Status: STK failed (${res.status}) - ${j && (j.error || j.details) ? j.error || j.details : "unknown error"}`
         );
         setPanelNotice("STK push failed. Confirm your number or use manual M-Pesa.");
       }
-    } catch {
-      setStkStatus("Status: Backend not reachable. Deploy STK backend or use manual M-Pesa.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStkStatus("Status: STK request timed out. Try again.");
+      } else {
+        setStkStatus("Status: Backend not reachable. Deploy STK backend or use manual M-Pesa.");
+      }
       setPanelNotice("Payment backend is unreachable. Use manual M-Pesa checkout.");
     }
   };
