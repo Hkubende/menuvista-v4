@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft, LoaderCircle, Minus, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   addToCart,
@@ -36,6 +36,16 @@ function normalizePhoneKE(input: string) {
   return null;
 }
 
+function normalizePhoneInput(input: string) {
+  return String(input || "").replace(/[^\d+]/g, "").slice(0, 13);
+}
+
+type StkBanner =
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string }
+  | { kind: "info"; message: string }
+  | null;
+
 export default function Checkout() {
   const navigate = useNavigate();
   const [dishes, setDishes] = React.useState<Dish[]>([]);
@@ -46,8 +56,10 @@ export default function Checkout() {
   const [notice, setNotice] = React.useState("");
   const [pendingOrderId, setPendingOrderId] = React.useState(createOrderId());
   const [stkPhone, setStkPhone] = React.useState("");
+  const [stkTouched, setStkTouched] = React.useState(false);
   const [stkStatus, setStkStatus] = React.useState("Status: idle");
   const [stkLoading, setStkLoading] = React.useState(false);
+  const [stkBanner, setStkBanner] = React.useState<StkBanner>(null);
 
   React.useEffect(() => {
     fetchDishes()
@@ -79,6 +91,13 @@ export default function Checkout() {
 
   const total = React.useMemo(() => getOrderTotal(lines), [lines]);
   const itemCount = cartCount(cart);
+  const normalizedPhone = React.useMemo(() => normalizePhoneKE(stkPhone), [stkPhone]);
+  const stkPhoneError = React.useMemo(() => {
+    if (!stkTouched) return "";
+    if (!stkPhone.trim()) return "Phone number is required.";
+    if (!normalizedPhone) return "Use a valid Kenyan number: 07XXXXXXXX or 2547XXXXXXXX.";
+    return "";
+  }, [stkPhone, stkTouched, normalizedPhone]);
 
   const clearAfterOrder = () => {
     saveCart({});
@@ -116,16 +135,20 @@ export default function Checkout() {
 
   const checkBackend = async () => {
     setStkStatus("Status: checking backend...");
+    setStkBanner({ kind: "info", message: "Checking backend health..." });
     try {
       const res = await fetch(`${STK_API_BASE}/health`, { cache: "no-store" });
       const body = await res.json().catch(() => null);
       if (res.ok && body?.ok) {
         setStkStatus(`Status: backend OK (${body.env || "unknown"})`);
+        setStkBanner({ kind: "success", message: "Backend is reachable and ready." });
       } else {
         setStkStatus(`Status: backend responded with error (${res.status}).`);
+        setStkBanner({ kind: "error", message: "Backend responded with an error." });
       }
     } catch {
       setStkStatus("Status: backend not reachable.");
+      setStkBanner({ kind: "error", message: "Backend is not reachable right now." });
     }
   };
 
@@ -134,14 +157,17 @@ export default function Checkout() {
       setNotice("Cart is empty. Add items before payment.");
       return;
     }
-    const phone = normalizePhoneKE(stkPhone);
+    setStkTouched(true);
+    const phone = normalizedPhone;
     if (!phone) {
       setStkStatus("Status: invalid phone. Use 07XXXXXXXX.");
+      setStkBanner({ kind: "error", message: "Please enter a valid phone number before sending STK." });
       return;
     }
 
     setStkLoading(true);
     setStkStatus("Sending payment request...");
+    setStkBanner({ kind: "info", message: "Sending payment request..." });
     try {
       const res = await fetch(`${STK_API_BASE}/stkpush`, {
         method: "POST",
@@ -156,19 +182,19 @@ export default function Checkout() {
       const body = await res.json().catch(() => null);
       if (res.ok && body?.ok) {
         setStkStatus("Payment request sent. Please check your phone.");
+        setStkBanner({ kind: "success", message: "Payment request sent. Please check your phone." });
         const ref = typeof body?.checkoutRequestId === "string" && body.checkoutRequestId
           ? body.checkoutRequestId
           : pendingOrderId;
         completeOrder("stk_push", ref);
       } else {
-        setStkStatus(
-          `Payment failed: ${
-            body?.error || body?.details || body?.ResponseDescription || `HTTP ${res.status}`
-          }`
-        );
+        const message = body?.error || body?.details || body?.ResponseDescription || `HTTP ${res.status}`;
+        setStkStatus(`Payment failed: ${message}`);
+        setStkBanner({ kind: "error", message: `Payment failed: ${message}` });
       }
     } catch {
       setStkStatus("Payment failed: backend not reachable.");
+      setStkBanner({ kind: "error", message: "Payment failed: backend not reachable." });
     } finally {
       setStkLoading(false);
     }
@@ -275,11 +301,17 @@ export default function Checkout() {
                   <div className="mb-1 text-xs text-white/60">Phone (07XXXXXXXX)</div>
                   <input
                     value={stkPhone}
-                    onChange={(event) => setStkPhone(event.target.value)}
+                    onChange={(event) => setStkPhone(normalizePhoneInput(event.target.value))}
+                    onBlur={() => setStkTouched(true)}
                     className="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35"
                     placeholder="0745XXXXXX"
                     inputMode="numeric"
                   />
+                  {stkPhoneError ? (
+                    <div className="mt-1 text-xs text-red-300">{stkPhoneError}</div>
+                  ) : normalizedPhone ? (
+                    <div className="mt-1 text-xs text-emerald-300">Normalized: {normalizedPhone}</div>
+                  ) : null}
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <button
@@ -287,7 +319,14 @@ export default function Checkout() {
                     disabled={stkLoading || lines.length === 0}
                     className="rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-300 disabled:opacity-50"
                   >
-                    {stkLoading ? "Sending payment request..." : "Pay via STK Push"}
+                    {stkLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        Sending payment request...
+                      </span>
+                    ) : (
+                      "Pay via STK Push"
+                    )}
                   </button>
                   <button
                     onClick={checkBackend}
@@ -297,6 +336,19 @@ export default function Checkout() {
                   </button>
                 </div>
                 <div className="mt-2 text-xs text-white/75">{stkStatus}</div>
+                {stkBanner ? (
+                  <div
+                    className={`mt-2 rounded-2xl border px-3 py-2 text-xs ${
+                      stkBanner.kind === "success"
+                        ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                        : stkBanner.kind === "error"
+                          ? "border-red-400/25 bg-red-500/10 text-red-200"
+                          : "border-white/15 bg-white/5 text-white/80"
+                    }`}
+                  >
+                    {stkBanner.message}
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-3xl border border-orange-400/20 bg-orange-500/10 p-5">
