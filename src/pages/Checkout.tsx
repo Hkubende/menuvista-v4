@@ -13,16 +13,27 @@ import { fetchDishes, type Dish } from "../lib/dishes";
 import {
   buildOrderItemsFromCart,
   createAndStoreOrderFromCart,
-  createPaymentReference,
+  createOrderId,
   getOrderTotal,
-  type OrderPaymentMethod,
 } from "../lib/orders";
 import { getEffectivePrice, loadOverrides, type PriceOverrides } from "../lib/price-overrides";
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
+const MPESA_TILL = "8711138";
+const STK_API_BASE = (
+  import.meta.env.VITE_STK_API_BASE || "https://menuvista-mpesa-backend.onrender.com"
+).replace(/\/+$/, "");
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
+}
+
+function normalizePhoneKE(input: string) {
+  const s = String(input || "").trim();
+  if (/^07\d{8}$/.test(s)) return `254${s.slice(1)}`;
+  if (/^2547\d{8}$/.test(s)) return s;
+  if (/^\+2547\d{8}$/.test(s)) return s.slice(1);
+  return null;
 }
 
 export default function Checkout() {
@@ -33,8 +44,10 @@ export default function Checkout() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
-  const [paymentMethod, setPaymentMethod] = React.useState<OrderPaymentMethod>("manual_mpesa");
-  const [paymentReference, setPaymentReference] = React.useState(createPaymentReference());
+  const [pendingOrderId, setPendingOrderId] = React.useState(createOrderId());
+  const [stkPhone, setStkPhone] = React.useState("");
+  const [stkStatus, setStkStatus] = React.useState("Status: idle");
+  const [stkLoading, setStkLoading] = React.useState(false);
 
   React.useEffect(() => {
     fetchDishes()
@@ -67,6 +80,30 @@ export default function Checkout() {
   const total = React.useMemo(() => getOrderTotal(lines), [lines]);
   const itemCount = cartCount(cart);
 
+  const clearAfterOrder = () => {
+    saveCart({});
+    setCart({});
+    setPendingOrderId(createOrderId());
+  };
+
+  const completeOrder = (paymentMethod: "stk_push" | "manual_mpesa", paymentReference: string) => {
+    const order = createAndStoreOrderFromCart(
+      cart,
+      dishes,
+      getDishPrice,
+      paymentMethod,
+      paymentReference,
+      pendingOrderId
+    );
+    if (!order) {
+      setNotice("Cart is empty or invalid. Add items before placing order.");
+      return false;
+    }
+    clearAfterOrder();
+    navigate("/orders");
+    return true;
+  };
+
   const changeQty = (dishId: string, nextQty: number) => {
     setCart((prev) => {
       const currentQty = prev[dishId] || 0;
@@ -77,26 +114,89 @@ export default function Checkout() {
     });
   };
 
-  const placeOrder = () => {
-    const order = createAndStoreOrderFromCart(
-      cart,
-      dishes,
-      getDishPrice,
-      paymentMethod,
-      paymentReference
-    );
-    if (!order) {
-      setNotice("Cart is empty or invalid. Add items before placing order.");
+  const checkBackend = async () => {
+    setStkStatus("Status: checking backend...");
+    try {
+      const res = await fetch(`${STK_API_BASE}/health`, { cache: "no-store" });
+      const body = await res.json().catch(() => null);
+      if (res.ok && body?.ok) {
+        setStkStatus(`Status: backend OK (${body.env || "unknown"})`);
+      } else {
+        setStkStatus(`Status: backend responded with error (${res.status}).`);
+      }
+    } catch {
+      setStkStatus("Status: backend not reachable.");
+    }
+  };
+
+  const payViaStk = async () => {
+    if (!lines.length || total <= 0) {
+      setNotice("Cart is empty. Add items before payment.");
       return;
     }
-    saveCart({});
-    setCart({});
-    navigate("/orders");
+    const phone = normalizePhoneKE(stkPhone);
+    if (!phone) {
+      setStkStatus("Status: invalid phone. Use 07XXXXXXXX.");
+      return;
+    }
+
+    setStkLoading(true);
+    setStkStatus("Sending payment request...");
+    try {
+      const res = await fetch(`${STK_API_BASE}/stkpush`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          amount: total,
+          accountRef: "MenuVista",
+          desc: "MenuVista Order",
+        }),
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok && body?.ok) {
+        setStkStatus("Payment request sent. Please check your phone.");
+        const ref = typeof body?.checkoutRequestId === "string" && body.checkoutRequestId
+          ? body.checkoutRequestId
+          : pendingOrderId;
+        completeOrder("stk_push", ref);
+      } else {
+        setStkStatus(
+          `Payment failed: ${
+            body?.error || body?.details || body?.ResponseDescription || `HTTP ${res.status}`
+          }`
+        );
+      }
+    } catch {
+      setStkStatus("Payment failed: backend not reachable.");
+    } finally {
+      setStkLoading(false);
+    }
+  };
+
+  const copyPaymentDetails = async () => {
+    const text =
+      `MenuVista Manual Payment\nTill: ${MPESA_TILL}\nReference: ${pendingOrderId}\nAmount: ${total}\n\nItems:\n` +
+      `${lines.map((line) => `${line.quantity} x ${line.name} = ${line.subtotal}`).join("\n")}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Payment details copied.");
+    } catch {
+      setNotice("Copy failed. Please copy details manually.");
+    }
+  };
+
+  const confirmManualPayment = () => {
+    if (!lines.length || total <= 0) {
+      setNotice("Cart is empty. Add items before confirming payment.");
+      return;
+    }
+    completeOrder("manual_mpesa", pendingOrderId);
   };
 
   return (
     <div className="min-h-screen bg-[#0b0b10] text-white">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-3 rounded-3xl border border-white/10 bg-black/35 p-4 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <img src={LOGO_SRC} alt="MenuVista" className="h-11 w-11 rounded-2xl object-cover" />
@@ -142,9 +242,7 @@ export default function Checkout() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="font-bold">{line.name}</div>
-                          <div className="text-xs text-white/55">
-                            {formatKsh(line.unitPrice)} each
-                          </div>
+                          <div className="text-xs text-white/55">{formatKsh(line.unitPrice)} each</div>
                         </div>
                         <div className="text-sm font-bold text-orange-400">{formatKsh(line.subtotal)}</div>
                       </div>
@@ -169,38 +267,72 @@ export default function Checkout() {
               )}
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="mb-3 text-sm font-black uppercase tracking-wide text-white/70">Payment</div>
-              <div className="space-y-2">
-                <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2">
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-5">
+                <div className="mb-2 text-base font-black">Pay via STK Push</div>
+                <div className="text-xs text-white/70">Enter phone and send STK request.</div>
+                <div className="mt-3">
+                  <div className="mb-1 text-xs text-white/60">Phone (07XXXXXXXX)</div>
                   <input
-                    type="radio"
-                    checked={paymentMethod === "manual_mpesa"}
-                    onChange={() => setPaymentMethod("manual_mpesa")}
+                    value={stkPhone}
+                    onChange={(event) => setStkPhone(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35"
+                    placeholder="0745XXXXXX"
+                    inputMode="numeric"
                   />
-                  <span className="text-sm">Manual M-Pesa</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === "stk_push_placeholder"}
-                    onChange={() => setPaymentMethod("stk_push_placeholder")}
-                  />
-                  <span className="text-sm">STK Push (Placeholder)</span>
-                </label>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={payViaStk}
+                    disabled={stkLoading || lines.length === 0}
+                    className="rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-300 disabled:opacity-50"
+                  >
+                    {stkLoading ? "Sending payment request..." : "Pay via STK Push"}
+                  </button>
+                  <button
+                    onClick={checkBackend}
+                    className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-bold text-white hover:bg-white/[0.08]"
+                  >
+                    Check Backend
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-white/75">{stkStatus}</div>
               </div>
 
-              <div className="mt-4">
-                <div className="mb-1 text-xs text-white/60">Payment Reference</div>
-                <input
-                  value={paymentReference}
-                  onChange={(event) => setPaymentReference(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none"
-                  placeholder="Reference"
-                />
+              <div className="rounded-3xl border border-orange-400/20 bg-orange-500/10 p-5">
+                <div className="mb-2 text-base font-black">Manual M-Pesa</div>
+                <div className="space-y-1 text-sm text-white/85">
+                  <div className="flex items-center justify-between">
+                    <div className="text-white/60">Till Number</div>
+                    <div className="font-mono text-white">{MPESA_TILL}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-white/60">Reference</div>
+                    <div className="font-mono text-white">{pendingOrderId}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-white/60">Amount</div>
+                    <div className="font-mono text-white">{formatKsh(total)}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={copyPaymentDetails}
+                    className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-bold text-white hover:bg-white/[0.08]"
+                  >
+                    Copy payment details
+                  </button>
+                  <button
+                    onClick={confirmManualPayment}
+                    disabled={lines.length === 0}
+                    className="rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-orange-400 disabled:opacity-50"
+                  >
+                    Send confirmation
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="text-white/60">Total</div>
                   <div className="text-2xl font-black text-orange-400">{formatKsh(total)}</div>
@@ -208,18 +340,10 @@ export default function Checkout() {
               </div>
 
               {notice ? (
-                <div className="mt-4 rounded-2xl border border-orange-400/25 bg-orange-500/10 px-3 py-2 text-xs text-orange-200">
+                <div className="rounded-2xl border border-orange-400/25 bg-orange-500/10 px-3 py-2 text-xs text-orange-200">
                   {notice}
                 </div>
               ) : null}
-
-              <button
-                onClick={placeOrder}
-                className="mt-4 w-full rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-black text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={lines.length === 0}
-              >
-                Place Order
-              </button>
             </div>
           </div>
         ) : null}

@@ -9,7 +9,7 @@ export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
   "completed",
 ];
 
-export type OrderPaymentMethod = "manual_mpesa" | "stk_push_placeholder";
+export type OrderPaymentMethod = "manual_mpesa" | "stk_push";
 
 export type OrderItem = {
   dishId: string;
@@ -75,12 +75,14 @@ function sanitizeOrder(input: unknown): Order | null {
     items,
     total,
     status: sanitizeOrderStatus(row.status),
-    paymentMethod: row.paymentMethod === "stk_push_placeholder" ? "stk_push_placeholder" : "manual_mpesa",
+    paymentMethod: row.paymentMethod === "stk_push" || row.paymentMethod === "stk_push_placeholder"
+      ? "stk_push"
+      : "manual_mpesa",
     paymentReference: typeof row.paymentReference === "string" ? row.paymentReference : "",
   };
 }
 
-function makeOrderId() {
+export function createOrderId() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `MV4-${stamp}-${rand}`;
@@ -110,7 +112,7 @@ export function createPaymentReference() {
 }
 
 export function getPaymentMethodLabel(method: OrderPaymentMethod) {
-  return method === "manual_mpesa" ? "Manual M-Pesa" : "STK Push (Placeholder)";
+  return method === "manual_mpesa" ? "Manual M-Pesa" : "STK Push";
 }
 
 export function buildOrderItemsFromCart(
@@ -136,19 +138,22 @@ export function createOrderFromCart(
   dishes: Dish[],
   priceResolver: (dish: Dish) => number,
   paymentMethod: OrderPaymentMethod,
-  paymentReference: string
+  paymentReference: string,
+  fixedOrderId?: string
 ): Order | null {
   const items = buildOrderItemsFromCart(cart, dishes, priceResolver);
   if (!items.length) return null;
   const total = getOrderTotal(items);
+  const id = fixedOrderId || createOrderId();
+  const reference = paymentMethod === "manual_mpesa" ? (paymentReference.trim() || id) : paymentReference.trim();
   return {
-    id: makeOrderId(),
+    id,
     createdAt: new Date().toISOString(),
     items,
     total,
     status: "pending",
     paymentMethod,
-    paymentReference: paymentReference.trim(),
+    paymentReference: reference,
   };
 }
 
@@ -157,9 +162,17 @@ export function createAndStoreOrderFromCart(
   dishes: Dish[],
   priceResolver: (dish: Dish) => number,
   paymentMethod: OrderPaymentMethod,
-  paymentReference: string
+  paymentReference: string,
+  fixedOrderId?: string
 ) {
-  const order = createOrderFromCart(cart, dishes, priceResolver, paymentMethod, paymentReference);
+  const order = createOrderFromCart(
+    cart,
+    dishes,
+    priceResolver,
+    paymentMethod,
+    paymentReference,
+    fixedOrderId
+  );
   if (!order) return null;
   addOrder(order);
   return order;
