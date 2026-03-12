@@ -36,6 +36,7 @@ export default function ARViewer() {
   const [currentModelSrc, setCurrentModelSrc] = React.useState("");
   const [modelLoading, setModelLoading] = React.useState(true);
   const [toast, setToast] = React.useState("Loading 3D model...");
+  const [panelNotice, setPanelNotice] = React.useState("");
   const [supportChip, setSupportChip] = React.useState("Checking AR support...");
   const [arDisabled, setArDisabled] = React.useState(false);
   const [dishNotice, setDishNotice] = React.useState("");
@@ -68,6 +69,7 @@ export default function ARViewer() {
       .then((data) => {
         if (!data.length) {
           setToast("No dishes available. Add at least one dish in dashboard.");
+          setPanelNotice("No dishes are available right now. Please add dishes from dashboard.");
           setSupportChip("No dishes found");
           setArDisabled(true);
           return;
@@ -76,6 +78,7 @@ export default function ARViewer() {
       })
       .catch(() => {
         setToast("Failed to load data/dishes.json. Fix file path + JSON format.");
+        setPanelNotice("We could not load dishes. Please refresh or check dashboard data.");
         setSupportChip("Data load error");
         setArDisabled(true);
       });
@@ -106,6 +109,7 @@ export default function ARViewer() {
       setCurrentModelSrc("");
       setModelLoading(false);
       setToast(`No 3D model found for "${selectedDish.name}".`);
+      setPanelNotice(`"${selectedDish.name}" has no model file yet. Choose another dish or upload a model.`);
       setSupportChip("No model file");
       setArDisabled(true);
       return;
@@ -135,6 +139,7 @@ export default function ARViewer() {
     };
     const onError = () => {
       setToast("Model failed to load. Check filename/path (case-sensitive).");
+      setPanelNotice("Model file is missing or invalid. Try another dish or re-upload the model.");
       setArDisabled(true);
       setSupportChip("Model load error");
       setModelLoading(false);
@@ -211,12 +216,22 @@ export default function ARViewer() {
     if (searchParams.get("checkout") !== "1") return;
     let cart: Cart = {};
     const encoded = searchParams.get("cart");
+    const isEncodedCheckout = !!encoded;
     if (encoded) {
       cart = decodeCartPayload(encoded);
     } else {
       cart = loadCart();
     }
-    if (cartCount(cart) === 0) return;
+    if (cartCount(cart) === 0) {
+      setModalOpen(false);
+      setPanelNotice(
+        isEncodedCheckout
+          ? "Invalid checkout link. Please go back to Menu and try checkout again."
+          : "Your cart is empty. Add items before opening checkout."
+      );
+      return;
+    }
+    setPanelNotice("");
     setCheckoutCart(cart);
     setCheckoutRef(makeRef());
     setModalOpen(true);
@@ -225,9 +240,10 @@ export default function ARViewer() {
   const openCheckout = () => {
     const cart = loadCart();
     if (cartCount(cart) === 0) {
-      alert("Cart is empty.");
+      setPanelNotice("Your cart is empty. Add items before checkout.");
       return;
     }
+    setPanelNotice("");
     setCheckoutCart(cart);
     setCheckoutRef(makeRef());
     setModalOpen(true);
@@ -248,11 +264,14 @@ export default function ARViewer() {
       const j = await res.json().catch(() => null);
       if (res.ok && j && j.ok) {
         setStkStatus(`Status: backend OK (${j.env || "unknown"})`);
+        setPanelNotice("");
       } else {
         setStkStatus("Status: backend responded but not OK");
+        setPanelNotice("Payment backend is not healthy right now. Use manual M-Pesa checkout.");
       }
     } catch {
       setStkStatus("Status: backend not reachable. Deploy STK backend or use manual M-Pesa.");
+      setPanelNotice("Payment backend is unreachable. Use manual M-Pesa checkout.");
     }
   };
 
@@ -286,9 +305,11 @@ export default function ARViewer() {
         setStkStatus(
           `Status: STK failed - ${j && (j.error || j.details) ? j.error || j.details : "unknown error"}`
         );
+        setPanelNotice("STK push failed. Confirm your number or use manual M-Pesa.");
       }
     } catch {
       setStkStatus("Status: Backend not reachable. Deploy STK backend or use manual M-Pesa.");
+      setPanelNotice("Payment backend is unreachable. Use manual M-Pesa checkout.");
     }
   };
 
@@ -380,6 +401,12 @@ export default function ARViewer() {
           </div>
           <div className="text-xs font-black text-orange-400 sm:text-sm">{formatKsh(selectedPrice)}</div>
         </div>
+
+        {panelNotice ? (
+          <div className="mx-auto mb-2 w-full max-w-xl rounded-2xl border border-orange-400/25 bg-black/65 px-3 py-2 text-center text-xs text-orange-200 backdrop-blur-xl">
+            {panelNotice}
+          </div>
+        ) : null}
 
         <div className="mx-auto w-full max-w-xl rounded-3xl border border-white/10 bg-black/55 p-2.5 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-300 md:p-3">
           <div className="max-h-[25vh] overflow-y-auto md:max-h-none">

@@ -134,6 +134,7 @@ export default function App() {
   const [cartOpen, setCartOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [cartNotice, setCartNotice] = React.useState("");
   const [overrides, setOverrides] = React.useState<PriceOverrides>({});
 
   React.useEffect(() => {
@@ -156,6 +157,10 @@ export default function App() {
   React.useEffect(() => {
     saveCart(cart);
   }, [cart]);
+
+  React.useEffect(() => {
+    if (cartCount(cart) > 0 && cartNotice) setCartNotice("");
+  }, [cart, cartNotice]);
 
   React.useEffect(() => {
     const refreshOverrides = () => setOverrides(loadOverrides());
@@ -237,7 +242,10 @@ export default function App() {
   const cartTotal = getCartTotal(cart, pricedDishes);
 
   const checkoutCart = () => {
-    if (!cartItems.length) return;
+    if (!cartItems.length) {
+      setCartNotice("Your cart is empty. Add items before checkout.");
+      return;
+    }
     const payload = encodeCartPayload(cart);
     navigate(`/ar?checkout=1&cart=${payload}`);
   };
@@ -509,6 +517,12 @@ export default function App() {
                     {formatKsh(cartTotal)}
                   </span>
                 </div>
+
+                {cartNotice && (
+                  <div className="mb-3 rounded-xl border border-orange-400/25 bg-orange-500/10 px-3 py-2 text-xs text-orange-200">
+                    {cartNotice}
+                  </div>
+                )}
 
                 <button
                   onClick={checkoutCart}
