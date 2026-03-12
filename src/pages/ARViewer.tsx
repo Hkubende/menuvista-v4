@@ -1,10 +1,13 @@
 import * as React from "react";
+import { ShoppingCart } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  addToCart as addDishToCart,
   cartCount,
   cartTotal as getCartTotal,
   decodeCartPayload,
   loadCart,
+  saveCart,
   type Cart,
 } from "../lib/cart";
 import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
@@ -261,6 +264,13 @@ export default function ARViewer() {
     setModalOpen(true);
   };
 
+  const addCurrentDishToCart = () => {
+    if (!selectedDish) return;
+    const next = addDishToCart(loadCart(), selectedDish.id, 1);
+    saveCart(next);
+    setPanelNotice(`Added "${selectedDish.name}" to cart.`);
+  };
+
   const normalizePhoneKE = (input: string) => {
     const s = String(input || "").trim();
     if (/^07\d{8}$/.test(s)) return `254${s.slice(1)}`;
@@ -450,7 +460,18 @@ export default function ARViewer() {
               </button>
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.06] px-2 text-sm font-bold text-white transition hover:bg-white/[0.1]"
+                onClick={addCurrentDishToCart}
+                disabled={!selectedDish}
+                title="Add current dish to cart"
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <ShoppingCart className="h-4 w-4" />
+                  Add
+                </span>
+              </button>
               <button
                 className="min-h-11 rounded-2xl bg-emerald-400 px-2 text-sm font-bold text-black transition hover:bg-emerald-300"
                 onClick={() => navigate("/orders")}
