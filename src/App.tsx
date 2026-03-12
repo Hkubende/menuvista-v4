@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
+  ReceiptText,
   Search,
   Clock3,
   X,
@@ -291,6 +292,16 @@ export default function App() {
                 className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08]"
               >
                 Dashboard
+              </button>
+
+              <button
+                onClick={() => {
+                  navigate("/orders");
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.08]"
+              >
+                <ReceiptText className="h-4 w-4" />
+                Orders
               </button>
 
               <button
