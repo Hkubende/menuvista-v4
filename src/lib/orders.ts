@@ -99,13 +99,19 @@ export function addOrder(order: Order) {
   saveOrders([order, ...current]);
 }
 
-export function createOrderFromCart(
+export function createPaymentReference() {
+  return `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+export function getPaymentMethodLabel(method: OrderPaymentMethod) {
+  return method === "manual_mpesa" ? "Manual M-Pesa" : "STK Push (Placeholder)";
+}
+
+export function buildOrderItemsFromCart(
   cart: Cart,
   dishes: Dish[],
-  priceResolver: (dish: Dish) => number,
-  paymentMethod: OrderPaymentMethod,
-  paymentReference: string
-): Order | null {
+  priceResolver: (dish: Dish) => number
+) {
   const items: OrderItem[] = [];
   for (const [dishId, quantity] of Object.entries(cart)) {
     const dish = dishes.find((row) => row.id === dishId);
@@ -122,9 +128,23 @@ export function createOrderFromCart(
       subtotal,
     });
   }
+  return items;
+}
 
+export function getOrderTotal(items: OrderItem[]) {
+  return items.reduce((sum, row) => sum + row.subtotal, 0);
+}
+
+export function createOrderFromCart(
+  cart: Cart,
+  dishes: Dish[],
+  priceResolver: (dish: Dish) => number,
+  paymentMethod: OrderPaymentMethod,
+  paymentReference: string
+): Order | null {
+  const items = buildOrderItemsFromCart(cart, dishes, priceResolver);
   if (!items.length) return null;
-  const total = items.reduce((sum, row) => sum + row.subtotal, 0);
+  const total = getOrderTotal(items);
   return {
     id: makeOrderId(),
     createdAt: new Date().toISOString(),
@@ -134,4 +154,21 @@ export function createOrderFromCart(
     paymentMethod,
     paymentReference: paymentReference.trim(),
   };
+}
+
+export function createAndStoreOrderFromCart(
+  cart: Cart,
+  dishes: Dish[],
+  priceResolver: (dish: Dish) => number,
+  paymentMethod: OrderPaymentMethod,
+  paymentReference: string
+) {
+  const order = createOrderFromCart(cart, dishes, priceResolver, paymentMethod, paymentReference);
+  if (!order) return null;
+  addOrder(order);
+  return order;
+}
+
+export function getRecentOrders(limit = 5) {
+  return loadOrders().slice(0, Math.max(0, Math.floor(limit)));
 }

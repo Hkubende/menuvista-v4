@@ -4,16 +4,17 @@ import { useNavigate } from "react-router-dom";
 import {
   addToCart,
   cartCount,
-  cartTotal,
   loadCart,
   removeFromCart,
   saveCart,
   type Cart,
 } from "../lib/cart";
-import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
+import { fetchDishes, type Dish } from "../lib/dishes";
 import {
-  addOrder,
-  createOrderFromCart,
+  buildOrderItemsFromCart,
+  createAndStoreOrderFromCart,
+  createPaymentReference,
+  getOrderTotal,
   type OrderPaymentMethod,
 } from "../lib/orders";
 import { getEffectivePrice, loadOverrides, type PriceOverrides } from "../lib/price-overrides";
@@ -22,10 +23,6 @@ const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
 function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
-}
-
-function makePaymentRef() {
-  return `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
 export default function Checkout() {
@@ -37,7 +34,7 @@ export default function Checkout() {
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [paymentMethod, setPaymentMethod] = React.useState<OrderPaymentMethod>("manual_mpesa");
-  const [paymentReference, setPaymentReference] = React.useState(makePaymentRef());
+  const [paymentReference, setPaymentReference] = React.useState(createPaymentReference());
 
   React.useEffect(() => {
     fetchDishes()
@@ -62,31 +59,12 @@ export default function Checkout() {
     [overrides]
   );
 
-  const lines = React.useMemo(() => {
-    return Object.entries(cart)
-      .map(([dishId, quantity]) => {
-        const dish = getDishById(dishes, dishId);
-        if (!dish) return null;
-        const unitPrice = getDishPrice(dish);
-        const subtotal = unitPrice * quantity;
-        return {
-          dishId,
-          dish,
-          quantity,
-          unitPrice,
-          subtotal,
-        };
-      })
-      .filter(Boolean) as Array<{
-      dishId: string;
-      dish: Dish;
-      quantity: number;
-      unitPrice: number;
-      subtotal: number;
-    }>;
-  }, [cart, dishes, getDishPrice]);
+  const lines = React.useMemo(
+    () => buildOrderItemsFromCart(cart, dishes, getDishPrice),
+    [cart, dishes, getDishPrice]
+  );
 
-  const total = React.useMemo(() => cartTotal(cart, dishes, getDishPrice), [cart, dishes, getDishPrice]);
+  const total = React.useMemo(() => getOrderTotal(lines), [lines]);
   const itemCount = cartCount(cart);
 
   const changeQty = (dishId: string, nextQty: number) => {
@@ -100,12 +78,17 @@ export default function Checkout() {
   };
 
   const placeOrder = () => {
-    const order = createOrderFromCart(cart, dishes, getDishPrice, paymentMethod, paymentReference);
+    const order = createAndStoreOrderFromCart(
+      cart,
+      dishes,
+      getDishPrice,
+      paymentMethod,
+      paymentReference
+    );
     if (!order) {
       setNotice("Cart is empty or invalid. Add items before placing order.");
       return;
     }
-    addOrder(order);
     saveCart({});
     setCart({});
     navigate("/orders");
@@ -158,7 +141,7 @@ export default function Checkout() {
                     <div key={line.dishId} className="rounded-2xl border border-white/10 bg-black/25 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="font-bold">{line.dish.name}</div>
+                          <div className="font-bold">{line.name}</div>
                           <div className="text-xs text-white/55">
                             {formatKsh(line.unitPrice)} each
                           </div>

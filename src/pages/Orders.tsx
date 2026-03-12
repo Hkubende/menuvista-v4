@@ -1,7 +1,12 @@
 import * as React from "react";
 import { ArrowLeft, ReceiptText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { loadOrders, type Order, type OrderStatus } from "../lib/orders";
+import {
+  getPaymentMethodLabel,
+  loadOrders,
+  type Order,
+  type OrderStatus,
+} from "../lib/orders";
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
@@ -14,10 +19,6 @@ function statusClass(status: OrderStatus) {
   if (status === "preparing") return "border-orange-400/30 bg-orange-500/15 text-orange-200";
   if (status === "confirmed") return "border-sky-400/30 bg-sky-500/15 text-sky-200";
   return "border-white/20 bg-white/10 text-white/80";
-}
-
-function paymentLabel(method: Order["paymentMethod"]) {
-  return method === "manual_mpesa" ? "Manual M-Pesa" : "STK Push (Placeholder)";
 }
 
 export default function Orders() {
@@ -103,7 +104,7 @@ export default function Orders() {
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-sm">
                   <div className="text-white/60">
-                    {paymentLabel(order.paymentMethod)} | Ref:{" "}
+                    {getPaymentMethodLabel(order.paymentMethod)} | Ref:{" "}
                     <span className="font-mono text-white/80">{order.paymentReference || "-"}</span>
                   </div>
                   <div className="text-lg font-black text-emerald-300">{formatKsh(order.total)}</div>

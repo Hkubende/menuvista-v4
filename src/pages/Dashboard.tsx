@@ -14,7 +14,7 @@ import {
   saveOverrides,
   type PriceOverrides,
 } from "../lib/price-overrides";
-import { loadOrders, type Order } from "../lib/orders";
+import { getRecentOrders, type Order } from "../lib/orders";
 import { getViews, resetViews } from "../lib/views";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 const EMPTY_PRODUCT = {
@@ -76,7 +76,7 @@ export default function Dashboard() {
 
   const refreshAdminState = React.useCallback(() => {
     setOverrides(loadOverrides());
-    setRecentOrders(loadOrders().slice(0, 5));
+    setRecentOrders(getRecentOrders(5));
     setViewsVersion((prev) => prev + 1);
   }, []);
 
