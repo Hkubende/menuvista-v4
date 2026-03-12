@@ -8,6 +8,7 @@
     "backend:start": "node backend/server.mjs",
     "backend:dev": "node --watch backend/server.mjs",
     "check:mpesa": "node scripts/check-mpesa-backend.mjs",
+    "stk:mv4": "node scripts/stkpush-mv4.mjs",
     "validate:dishes": "node scripts/validate-dishes.mjs",
     "validate:assets": "node scripts/validate-dishes-assets.mjs",
     "validate:data": "npm run validate:dishes && npm run validate:assets",

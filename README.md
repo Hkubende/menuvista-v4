@@ -22,6 +22,17 @@ VITE_STK_API_BASE="https://your-backend.example.com"
 
 If the backend is unavailable, AR checkout falls back to manual M-Pesa flow.
 
+Trigger an MV4 STK push from terminal:
+
+```bash
+STK_PHONE=0745123456 STK_AMOUNT=1 npm run stk:mv4
+```
+
+Optional vars:
+- `STK_API_BASE` (default `https://menuvista-mpesa-backend.onrender.com`)
+- `STK_REF` (default `MV4-ORDER`)
+- `STK_DESC` (default `MenuVista MV4`)
+
 ## Backend service in this repo
 
 Start the backend locally:
