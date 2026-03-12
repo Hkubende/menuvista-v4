@@ -44,7 +44,10 @@ export default function Dashboard() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [overrides, setOverrides] = React.useState<PriceOverrides>({});
+  const [overrideDrafts, setOverrideDrafts] = React.useState<Record<string, string>>({});
   const [customIds, setCustomIds] = React.useState<Set<string>>(new Set());
+  const [viewsVersion, setViewsVersion] = React.useState(0);
+  const [adminNotice, setAdminNotice] = React.useState("");
   const [newProduct, setNewProduct] = React.useState(EMPTY_PRODUCT);
   const [formError, setFormError] = React.useState("");
   const [formSuccess, setFormSuccess] = React.useState("");
@@ -60,6 +63,7 @@ export default function Dashboard() {
         setDishes(data);
         const ids = new Set(loadCustomProducts().map((item) => item.id));
         setCustomIds(ids);
+        setError("");
         setLoading(false);
       })
       .catch((err: Error) => {
@@ -68,38 +72,81 @@ export default function Dashboard() {
       });
   }, []);
 
-  React.useEffect(() => {
+  const refreshAdminState = React.useCallback(() => {
     setOverrides(loadOverrides());
+    setViewsVersion((prev) => prev + 1);
+  }, []);
+
+  React.useEffect(() => {
+    refreshAdminState();
     void refreshCatalog();
-  }, [refreshCatalog]);
+  }, [refreshCatalog, refreshAdminState]);
+
+  React.useEffect(() => {
+    const nextDrafts: Record<string, string> = {};
+    for (const dish of dishes) {
+      nextDrafts[dish.id] =
+        overrides[dish.id] != null && Number.isFinite(Number(overrides[dish.id]))
+          ? String(overrides[dish.id])
+          : "";
+    }
+    setOverrideDrafts(nextDrafts);
+  }, [dishes, overrides]);
+
+  React.useEffect(() => {
+    const syncAdmin = () => refreshAdminState();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") syncAdmin();
+    };
+    window.addEventListener("focus", syncAdmin);
+    window.addEventListener("pageshow", syncAdmin);
+    window.addEventListener("storage", syncAdmin);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", syncAdmin);
+      window.removeEventListener("pageshow", syncAdmin);
+      window.removeEventListener("storage", syncAdmin);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [refreshAdminState]);
 
   const totalViews = React.useMemo(
     () => dishes.reduce((sum, dish) => sum + getViews(dish.id), 0),
-    [dishes]
+    [dishes, viewsVersion]
   );
 
   const topDish = React.useMemo(() => {
     if (!dishes.length) return null;
     return [...dishes].sort((a, b) => getViews(b.id) - getViews(a.id))[0];
-  }, [dishes]);
+  }, [dishes, viewsVersion]);
 
   const effectivePrice = (dish: Dish) => getEffectivePrice(dish, overrides);
 
-  const updatePrice = (id: string, value: string) => {
-    const next = { ...overrides };
-    if (value.trim() === "") delete next[id];
-    else next[id] = Number(value);
-    setOverrides(next);
+  const updatePriceDraft = (id: string, value: string) => {
+    setOverrideDrafts((prev) => ({ ...prev, [id]: value }));
   };
 
   const persistPrices = () => {
-    saveOverrides(overrides);
-    alert("Price overrides saved.");
+    const next: PriceOverrides = {};
+    for (const dish of dishes) {
+      const raw = (overrideDrafts[dish.id] || "").trim();
+      if (!raw) continue;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setAdminNotice(`Invalid override price for "${dish.name}". Use a number above 0.`);
+        return;
+      }
+      next[dish.id] = parsed;
+    }
+    saveOverrides(next);
+    setOverrides(next);
+    setAdminNotice("Price overrides saved.");
   };
 
   const handleResetViews = () => {
     resetViews(dishes.map((dish) => dish.id));
-    void refreshCatalog();
+    setViewsVersion((prev) => prev + 1);
+    setAdminNotice("Views reset.");
   };
 
   const handleNewProductChange =
@@ -118,13 +165,15 @@ export default function Dashboard() {
   const addNewProduct = async () => {
     setFormError("");
     setFormSuccess("");
-
-    const resolvedThumb = thumbFile
-      ? await saveLocalAsset(thumbFile, "thumb")
-      : newProduct.thumb.trim();
-    const resolvedModel = modelFile
-      ? await saveLocalAsset(modelFile, "model")
-      : newProduct.model.trim();
+    let resolvedThumb = newProduct.thumb.trim();
+    let resolvedModel = newProduct.model.trim();
+    try {
+      resolvedThumb = thumbFile ? await saveLocalAsset(thumbFile, "thumb") : newProduct.thumb.trim();
+      resolvedModel = modelFile ? await saveLocalAsset(modelFile, "model") : newProduct.model.trim();
+    } catch {
+      setFormError("Failed to save uploaded files. Try again.");
+      return;
+    }
 
     const nextProduct: Dish = {
       id: slugify(newProduct.id || newProduct.name),
@@ -176,14 +225,19 @@ export default function Dashboard() {
   };
 
   const removeCustomProduct = async (id: string) => {
-    const existing = loadCustomProducts().find((item) => item.id === id);
-    if (existing) {
-      await deleteLocalAsset(existing.thumb);
-      await deleteLocalAsset(existing.model);
+    try {
+      const existing = loadCustomProducts().find((item) => item.id === id);
+      if (existing) {
+        await deleteLocalAsset(existing.thumb);
+        await deleteLocalAsset(existing.model);
+      }
+      const custom = loadCustomProducts().filter((item) => item.id !== id);
+      saveCustomProducts(custom);
+      setAdminNotice("Custom product deleted.");
+      void refreshCatalog();
+    } catch {
+      setAdminNotice("Delete failed. Try again.");
     }
-    const custom = loadCustomProducts().filter((item) => item.id !== id);
-    saveCustomProducts(custom);
-    void refreshCatalog();
   };
 
   return (
@@ -248,13 +302,19 @@ export default function Dashboard() {
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
             <div className="text-sm text-white/55">Top dish</div>
             <div className="mt-2 text-xl font-black text-orange-400">
-              {topDish ? topDish.name : "—"}
+              {topDish ? topDish.name : "-"}
             </div>
             <div className="mt-1 text-sm text-white/55">
               {topDish ? `${getViews(topDish.id)} views` : ""}
             </div>
           </div>
         </div>
+
+        {adminNotice && (
+          <div className="mb-4 rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {adminNotice}
+          </div>
+        )}
 
         {showNewProductForm && (
           <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
@@ -382,6 +442,12 @@ export default function Dashboard() {
                             src={dish.thumb}
                             alt={dish.name}
                             className="h-12 w-12 rounded-2xl object-cover"
+                            onError={(event) => {
+                              const img = event.currentTarget;
+                              if (img.dataset.fallbackApplied === "1") return;
+                              img.dataset.fallbackApplied = "1";
+                              img.src = LOGO_SRC;
+                            }}
                           />
                           <div>
                             <div className="font-bold">
@@ -403,8 +469,11 @@ export default function Dashboard() {
                           <PencilLine className="h-4 w-4 text-white/45" />
                           <input
                             type="number"
-                            defaultValue={effectivePrice(dish)}
-                            onChange={(e) => updatePrice(dish.id, e.target.value)}
+                            min={0}
+                            step="0.01"
+                            value={overrideDrafts[dish.id] ?? ""}
+                            onChange={(e) => updatePriceDraft(dish.id, e.target.value)}
+                            placeholder={String(effectivePrice(dish))}
                             className="w-28 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none"
                           />
                         </div>
@@ -419,10 +488,12 @@ export default function Dashboard() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => navigate(`/ar?dish=${encodeURIComponent(dish.id)}`)}
-                            className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-black hover:bg-orange-400"
+                            disabled={!dish.model.trim()}
+                            className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-bold text-black hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Open AR
                           </button>
+                          {!dish.model.trim() && <div className="text-xs text-red-200">Missing model</div>}
                           {customIds.has(dish.id) && (
                             <button
                               onClick={() => removeCustomProduct(dish.id)}
@@ -444,3 +515,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
