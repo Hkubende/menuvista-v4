@@ -5,7 +5,6 @@ import {
   getPaymentMethodLabel,
   loadOrders,
   type Order,
-  type OrderStatus,
 } from "../lib/orders";
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
@@ -14,11 +13,8 @@ function formatKsh(value: number) {
   return `KSh ${value.toLocaleString("en-KE")}`;
 }
 
-function statusClass(status: OrderStatus) {
-  if (status === "completed") return "border-emerald-400/30 bg-emerald-500/15 text-emerald-200";
-  if (status === "preparing") return "border-orange-400/30 bg-orange-500/15 text-orange-200";
-  if (status === "confirmed") return "border-sky-400/30 bg-sky-500/15 text-sky-200";
-  return "border-white/20 bg-white/10 text-white/80";
+function statusClass() {
+  return "border-emerald-400/35 bg-emerald-500/20 text-emerald-200";
 }
 
 export default function Orders() {
@@ -86,7 +82,7 @@ export default function Orders() {
                   <div className="text-sm text-white/60">
                     {new Date(order.createdAt).toLocaleString("en-KE")}
                   </div>
-                  <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(order.status)}`}>
+                  <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass()}`}>
                     {order.status}
                   </div>
                 </div>
