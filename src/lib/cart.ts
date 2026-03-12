@@ -1,6 +1,13 @@
 import type { Dish } from "./dishes";
 
 export type Cart = Record<string, number>;
+export type CartLine = {
+  dishId: string;
+  dish: Dish;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
 
 export const CART_KEY = "mv_cart_v1";
 
@@ -56,13 +63,28 @@ export function cartTotal(
   dishes: Dish[],
   priceResolver: (dish: Dish) => number = (dish) => dish.price
 ) {
-  let total = 0;
+  return buildCartLines(cart, dishes, priceResolver).reduce((sum, line) => sum + line.subtotal, 0);
+}
+
+export function buildCartLines(
+  cart: Cart,
+  dishes: Dish[],
+  priceResolver: (dish: Dish) => number = (dish) => dish.price
+): CartLine[] {
+  const lines: CartLine[] = [];
   for (const [id, qty] of Object.entries(sanitizeCart(cart))) {
     const dish = dishes.find((item) => item.id === id);
     if (!dish) continue;
-    total += priceResolver(dish) * qty;
+    const unitPrice = Number(priceResolver(dish));
+    lines.push({
+      dishId: id,
+      dish,
+      quantity: qty,
+      unitPrice,
+      subtotal: unitPrice * qty,
+    });
   }
-  return total;
+  return lines;
 }
 
 export function encodeCartPayload(cart: Cart) {

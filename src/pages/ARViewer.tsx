@@ -3,6 +3,7 @@ import { ShoppingCart } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   addToCart as addDishToCart,
+  buildCartLines,
   cartCount,
   cartTotal as getCartTotal,
   decodeCartPayload,
@@ -10,7 +11,7 @@ import {
   saveCart,
   type Cart,
 } from "../lib/cart";
-import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
+import { fetchDishes, type Dish } from "../lib/dishes";
 import { getEffectivePrice } from "../lib/price-overrides";
 import { incrementViews } from "../lib/views";
 
@@ -211,14 +212,10 @@ export default function ARViewer() {
   }, [selectedDish, isIOS]);
 
   const checkoutLines = React.useMemo(() => {
-    const lines: string[] = [];
-    for (const [id, qty] of Object.entries(checkoutCart)) {
-      const dish = getDishById(dishes, id);
-      if (!dish) continue;
-      const unit = getDishPrice(dish);
-      lines.push(`${qty} x ${dish.name} @ ${formatKsh(unit)} = ${formatKsh(unit * qty)}`);
-    }
-    return lines;
+    return buildCartLines(checkoutCart, dishes, getDishPrice).map(
+      (line) =>
+        `${line.quantity} x ${line.dish.name} @ ${formatKsh(line.unitPrice)} = ${formatKsh(line.subtotal)}`
+    );
   }, [checkoutCart, dishes, getDishPrice]);
 
   const checkoutTotal = React.useMemo(

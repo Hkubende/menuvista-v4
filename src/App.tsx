@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   addToCart as addDishToCart,
+  buildCartLines,
   cartCount,
   cartTotal as getCartTotal,
   loadCart,
@@ -20,7 +21,7 @@ import {
   saveCart,
   type Cart,
 } from "./lib/cart";
-import { fetchDishes, getCategories, getDishById, type Dish } from "./lib/dishes";
+import { fetchDishes, getCategories, type Dish } from "./lib/dishes";
 import { getEffectivePrice, loadOverrides, type PriceOverrides } from "./lib/price-overrides";
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`;
 
@@ -231,12 +232,14 @@ export default function App() {
     });
   };
 
-  const cartItems = Object.entries(cart)
-    .map(([id, qty]) => {
-      const dish = getDishById(pricedDishes, id);
-      return dish ? { ...dish, qty } : null;
-    })
-    .filter(Boolean) as Array<Dish & { qty: number }>;
+  const cartItems = React.useMemo(
+    () =>
+      buildCartLines(cart, pricedDishes).map((line) => ({
+        ...line.dish,
+        qty: line.quantity,
+      })),
+    [cart, pricedDishes]
+  ) as Array<Dish & { qty: number }>;
 
   const cartCountValue = cartCount(cart);
   const cartTotal = getCartTotal(cart, pricedDishes);

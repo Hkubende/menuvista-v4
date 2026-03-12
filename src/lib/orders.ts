@@ -1,4 +1,4 @@
-import type { Cart } from "./cart";
+import { buildCartLines, type Cart } from "./cart";
 import type { Dish } from "./dishes";
 
 export type OrderStatus = "pending" | "confirmed" | "preparing" | "completed";
@@ -118,23 +118,13 @@ export function buildOrderItemsFromCart(
   dishes: Dish[],
   priceResolver: (dish: Dish) => number
 ) {
-  const items: OrderItem[] = [];
-  for (const [dishId, quantity] of Object.entries(cart)) {
-    const dish = dishes.find((row) => row.id === dishId);
-    if (!dish) continue;
-    const qty = Number(quantity);
-    if (!Number.isFinite(qty) || qty <= 0) continue;
-    const unitPrice = Number(priceResolver(dish));
-    const subtotal = unitPrice * qty;
-    items.push({
-      dishId: dish.id,
-      name: dish.name,
-      quantity: Math.floor(qty),
-      unitPrice,
-      subtotal,
-    });
-  }
-  return items;
+  return buildCartLines(cart, dishes, priceResolver).map((line) => ({
+    dishId: line.dishId,
+    name: line.dish.name,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    subtotal: line.subtotal,
+  }));
 }
 
 export function getOrderTotal(items: OrderItem[]) {
