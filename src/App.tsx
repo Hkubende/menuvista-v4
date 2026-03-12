@@ -14,6 +14,7 @@ import {
   addToCart as addDishToCart,
   cartCount,
   cartTotal as getCartTotal,
+  encodeCartPayload,
   loadCart,
   removeFromCart,
   saveCart,
@@ -237,7 +238,7 @@ export default function App() {
 
   const checkoutCart = () => {
     if (!cartItems.length) return;
-    const payload = encodeURIComponent(btoa(JSON.stringify(cart)));
+    const payload = encodeCartPayload(cart);
     navigate(`/ar?checkout=1&cart=${payload}`);
   };
 

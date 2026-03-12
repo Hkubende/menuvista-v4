@@ -1,6 +1,12 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { cartCount, cartTotal as getCartTotal, loadCart, type Cart } from "../lib/cart";
+import {
+  cartCount,
+  cartTotal as getCartTotal,
+  decodeCartPayload,
+  loadCart,
+  type Cart,
+} from "../lib/cart";
 import { fetchDishes, getDishById, type Dish } from "../lib/dishes";
 import { getEffectivePrice } from "../lib/price-overrides";
 import { incrementViews } from "../lib/views";
@@ -206,11 +212,7 @@ export default function ARViewer() {
     let cart: Cart = {};
     const encoded = searchParams.get("cart");
     if (encoded) {
-      try {
-        cart = JSON.parse(atob(decodeURIComponent(encoded)));
-      } catch {
-        cart = {};
-      }
+      cart = decodeCartPayload(encoded);
     } else {
       cart = loadCart();
     }
