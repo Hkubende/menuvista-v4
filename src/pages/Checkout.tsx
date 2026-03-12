@@ -149,7 +149,7 @@ export default function Checkout() {
         body: JSON.stringify({
           phone,
           amount: total,
-          accountRef: "MenuVista",
+          accountRef: pendingOrderId,
           desc: "MenuVista Order",
         }),
       });
@@ -325,7 +325,7 @@ export default function Checkout() {
                   <button
                     onClick={confirmManualPayment}
                     disabled={lines.length === 0}
-                    className="rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-orange-400 disabled:opacity-50"
+                    className="rounded-2xl bg-emerald-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-emerald-300 disabled:opacity-50"
                   >
                     Send confirmation
                   </button>
